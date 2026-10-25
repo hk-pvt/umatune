@@ -508,7 +508,7 @@ body.simopen{overflow:hidden}
     <div class="sim-ctl"><button class="btn solid" id="simAgain">走らせる</button><button class="btn" id="simK">1000回走らせる</button></div>
     <div class="sim-res" id="simResult" hidden></div>
     <p class="sim-note">走りの途中の動きは演出です。着順は、自分の作戦の評価から確率で決めています。</p>
-    <p class="sim-note sim-credit">3D: Horse by <a href="https://sketchfab.com/henry_7" target="_blank" rel="noopener">henry_7</a> (CC BY 4.0) / sky &amp; ground: Poly Haven (CC0) / 版 10/25 15:05</p>
+    <p class="sim-note sim-credit">3D: Horse by <a href="https://sketchfab.com/henry_7" target="_blank" rel="noopener">henry_7</a> (CC BY 4.0) / sky &amp; ground: Poly Haven (CC0) / 版 10/25 15:45</p>
   </div>
 </div>
 <div class="modal" id="modal" hidden></div>
@@ -1327,30 +1327,54 @@ const SIM = (() => {
       const t=canvasTex(128,64,(g,w,h)=>{ g.fillStyle='#D0242B'; g.fillRect(0,0,w,h); g.fillStyle='#fff'; g.font='bold 40px sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(String(m),w/2,h/2+2); });
       const b=new THREE.Mesh(new THREE.PlaneGeometry(2.4,1.2),new THREE.MeshBasicMaterial({map:t,side:THREE.DoubleSide})); b.position.set(q.x+qn.x*(W/2+1),q.y+3.2,q.z+qn.z*(W/2+1)); b.rotation.y=-q.th-Math.PI/2; scene.add(b);
       const pl=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,3,6),railMat); pl.position.set(b.position.x,q.y+1.5,b.position.z); scene.add(pl); });
-    // ゲート
+    // ゲート（JRA の発馬機に寄せる）: 白い鉄骨・緑のクッション・金属棒の両開き扉・上の足場・両端の車輪付きトラス
     const gs=at(P,R.D), gnn=innerN(P,gs.th), gate=new THREE.Group(), doors=[];
-    const gw=Math.min(1.2,(W-3)/Math.max(1,R.N)), zs=P.sign>0?-1:1;   // 外へ向かう局所zの符号
-    const white2=new THREE.MeshStandardMaterial({color:0xF4F5F2,roughness:0.4,metalness:0.2}), pad=new THREE.MeshStandardMaterial({color:0x1F6A45,roughness:0.85}), green=new THREE.MeshStandardMaterial({color:0x2C7A50,roughness:0.6});
-    const mesh=canvasTex(64,128,(g,w,h)=>{ g.clearRect(0,0,w,h); g.strokeStyle='rgba(235,238,236,0.95)'; g.lineWidth=3; for(let x=0;x<=w;x+=16){ g.beginPath(); g.moveTo(x,0); g.lineTo(x,h); g.stroke(); } for(let y=0;y<=h;y+=16){ g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke(); } });
-    const doorMat=new THREE.MeshStandardMaterial({map:mesh,transparent:true,alphaTest:0.3,side:THREE.DoubleSide,roughness:0.4});
-    const len=3.0, H2=3.1, z=i=>zs*(0.5+i*gw);
-    for(let i=0;i<=R.N;i++){ // 仕切り（下半分は緑のパッド）と前後の白い柱
-      const p1=new THREE.Mesh(new THREE.BoxGeometry(len,1.5,0.12),pad); p1.position.set(0,1.0,z(i)); gate.add(p1);
-      const p2=new THREE.Mesh(new THREE.BoxGeometry(len,0.08,0.06),white2); p2.position.set(0,2.2,z(i)); gate.add(p2);
-      for(const x of [-len/2,len/2]){ const post=new THREE.Mesh(new THREE.BoxGeometry(0.1,H2,0.1),white2); post.position.set(x,H2/2,z(i)); gate.add(post); } }
-    const span=R.N*gw;
-    for(const x of [-len/2,len/2]){ const beam=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.14,span+0.4),white2); beam.position.set(x,H2,zs*(0.5+span/2)); gate.add(beam); }
-    const top=new THREE.Mesh(new THREE.BoxGeometry(len+0.3,0.55,span+0.5),green); top.position.set(0,H2+0.3,zs*(0.5+span/2)); gate.add(top);
-    for(let i=0;i<R.N;i++){ const zc=zs*(0.5+i*gw+gw/2);
-      for(const sd of [-1,1]){ // 両開きの前扉（網）
-        const piv=new THREE.Group(); const hingeZ=zc+sd*gw/2*zs; piv.position.set(len/2,0,hingeZ);
-        const d=new THREE.Mesh(new THREE.PlaneGeometry(gw/2-0.04,1.7),doorMat); d.position.set(0,1.05,-sd*zs*(gw/4)); d.rotation.y=Math.PI/2; piv.add(d);
-        const fr=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.06,gw/2),white2); fr.position.set(0,1.9,-sd*zs*(gw/4)); piv.add(fr);
+    const gw=Math.min(1.15,(W-3)/Math.max(1,R.N)), zs=P.sign>0?-1:1;   // 外へ向かう局所zの符号
+    const steel=new THREE.MeshStandardMaterial({color:0xE8ECEA,roughness:0.35,metalness:0.55}), pad=new THREE.MeshStandardMaterial({color:0x1E5B3C,roughness:0.9}),
+          deckM=new THREE.MeshStandardMaterial({color:0x8E9894,roughness:0.6,metalness:0.4,map:canvasTex(64,64,(g,w,h)=>{ g.fillStyle='#9AA4A0'; g.fillRect(0,0,w,h); g.strokeStyle='#6E7774'; g.lineWidth=3; for(let k=0;k<=w;k+=8){ g.beginPath(); g.moveTo(k,0); g.lineTo(k,h); g.stroke(); } },[6,20])}),
+          rubber=new THREE.MeshStandardMaterial({color:0x1A1A1A,roughness:0.9}), hub=new THREE.MeshStandardMaterial({color:0xB8BEBC,metalness:0.7,roughness:0.3});
+    const bars=canvasTex(128,256,(g,w,h)=>{ g.clearRect(0,0,w,h); const grd=g.createLinearGradient(0,0,10,0); grd.addColorStop(0,'#AEB4B2'); grd.addColorStop(0.5,'#FFFFFF'); grd.addColorStop(1,'#9AA19F');
+      for(let k=0;k<5;k++){ g.save(); g.translate(8+k*27,0); g.fillStyle=grd; g.fillRect(0,0,10,h); g.restore(); } g.fillStyle='#E9EDEB'; g.fillRect(0,0,w,10); g.fillRect(0,h-10,w,10); });
+    const barM=new THREE.MeshStandardMaterial({map:bars,transparent:true,alphaTest:0.4,side:THREE.DoubleSide,roughness:0.3,metalness:0.6});
+    const len=3.2, H2=3.0, span=R.N*gw, z=i=>zs*(0.5+i*gw), zc=i=>zs*(0.5+i*gw+gw/2), zE=[z(0),z(R.N)];
+    // 鉄パイプはまとめて描く
+    const tubes=[], M4=new THREE.Matrix4(), up=new THREE.Vector3(0,1,0);
+    const tube=(a,b,r=0.045)=>{ const A=new THREE.Vector3(...a), B=new THREE.Vector3(...b), d=B.clone().sub(A), L=d.length(); const q=new THREE.Quaternion().setFromUnitVectors(up,d.normalize());
+      tubes.push(new THREE.Matrix4().compose(A.clone().add(B).multiplyScalar(0.5),q,new THREE.Vector3(r/0.05,L,r/0.05))); };
+    for(let i=0;i<=R.N;i++){ const zz=z(i);
+      const p1=new THREE.Mesh(new THREE.BoxGeometry(len-0.1,1.25,0.1),pad); p1.position.set(0,1.05,zz); gate.add(p1);      // 仕切りのクッション
+      for(const x of [-len/2,len/2]) tube([x,0,zz],[x,H2,zz],0.055);                                                     // 前後の柱
+      tube([-len/2,1.75,zz],[len/2,1.75,zz]); tube([-len/2,2.35,zz],[len/2,2.35,zz]); tube([-len/2,1.75,zz],[len/2,2.35,zz],0.035);   // 上の横棒と筋交い
+    }
+    for(const x of [-len/2,len/2]){ tube([x,H2,zE[0]],[x,H2,zE[1]],0.07); tube([x,2.2,zE[0]],[x,2.2,zE[1]],0.05); }             // 前後の梁
+    // 上の足場（床・手すり）
+    const deck=new THREE.Mesh(new THREE.BoxGeometry(len+0.7,0.08,span+0.3),deckM); deck.position.set(0,H2+0.04,zs*(0.5+span/2)); gate.add(deck);
+    for(let i=0;i<=R.N;i++) for(const x of [-len/2-0.3,len/2+0.3]) tube([x,H2,z(i)],[x,H2+1.0,z(i)],0.03);
+    for(const x of [-len/2-0.3,len/2+0.3]){ tube([x,H2+1.0,zE[0]],[x,H2+1.0,zE[1]],0.035); tube([x,H2+0.5,zE[0]],[x,H2+0.5,zE[1]],0.025); }
+    // 両端の車輪付きトラス
+    for(const ze of zE){ const zo=ze+zs*0.55*Math.sign(ze-zs*(0.5+span/2)||1);
+      for(const x of [-len/2,len/2]){ tube([x,0.6,zo],[x,H2,ze],0.07); tube([x,0.6,zo],[x,0.6,ze],0.06);
+        const wh=new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.55,0.32,24),rubber); wh.rotation.x=Math.PI/2; wh.position.set(x,0.55,zo); gate.add(wh);
+        const hb=new THREE.Mesh(new THREE.CylinderGeometry(0.28,0.28,0.34,16),hub); hb.rotation.x=Math.PI/2; hb.position.set(x,0.55,zo); gate.add(hb); }
+      tube([-len/2,0.6,zo],[len/2,0.6,zo],0.06); }
+    for(let i=0;i<R.N;i++){
+      // 前扉（両開き）: 金属棒＋胸の当たるクッション
+      for(const sd of [-1,1]){
+        const piv=new THREE.Group(); piv.position.set(len/2,0,zc(i)+sd*gw/2*zs);
+        const dw=gw/2-0.03, off=-sd*zs*(gw/4);
+        const d=new THREE.Mesh(new THREE.PlaneGeometry(dw,1.75),barM); d.position.set(0,1.2,off); d.rotation.y=Math.PI/2; piv.add(d);
+        const bump=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.26,dw),pad); bump.position.set(0.03,1.42,off); piv.add(bump);
+        const tp=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,dw,8),steel); tp.rotation.x=Math.PI/2; tp.position.set(0,2.08,off); piv.add(tp);
         gate.add(piv); piv.userData.sd=sd; doors.push(piv); }
-      const back=new THREE.Mesh(new THREE.PlaneGeometry(gw-0.06,1.7),doorMat); back.position.set(-len/2,1.05,zc); back.rotation.y=Math.PI/2; gate.add(back);
-      const num=canvasTex(64,64,(g,w,h)=>{ g.fillStyle='#fff'; g.fillRect(0,0,w,h); g.fillStyle='#1C1C1C'; g.font='bold 46px sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(String(i+1),w/2,h/2+3); });
-      const nb=new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.5),new THREE.MeshBasicMaterial({map:num})); nb.position.set(len/2+0.17,H2+0.3,zc); nb.rotation.y=Math.PI/2; gate.add(nb); }
-    for(const zz of [zs*0.2, zs*(span+0.8)]) for(const x of [-len/2,len/2]){ const wh=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,0.25,16),dark); wh.rotation.x=Math.PI/2; wh.position.set(x,0.4,zz); gate.add(wh); }
+      // 後ろの扉
+      const back=new THREE.Mesh(new THREE.PlaneGeometry(gw-0.06,1.75),barM); back.position.set(-len/2,1.2,zc(i)); back.rotation.y=Math.PI/2; gate.add(back);
+      const bb=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.3,gw-0.06),pad); bb.position.set(-len/2-0.03,1.35,zc(i)); gate.add(bb);
+      // 前面上の番号板（白地に黒・下に枠色の帯）
+      const it=R.items.find(o=>o.h.no===i+1), wk=it?it.h.waku:1;
+      const num=canvasTex(96,96,(g,w,h)=>{ g.fillStyle='#FFFFFF'; g.fillRect(0,0,w,h); g.fillStyle='#'+(CAP[wk]||0xffffff).toString(16).padStart(6,'0'); g.fillRect(0,h-18,w,18);
+        g.strokeStyle='#333'; g.lineWidth=3; g.strokeRect(1,1,w-2,h-2); g.fillStyle='#151515'; g.font='900 58px "Helvetica Neue",Arial,sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(String(i+1),w/2,h/2-6); });
+      const nb=new THREE.Mesh(new THREE.PlaneGeometry(gw*0.62,gw*0.62),new THREE.MeshStandardMaterial({map:num,roughness:0.6})); nb.position.set(len/2+0.08,2.62,zc(i)); nb.rotation.y=Math.PI/2; gate.add(nb); }
+    const tubeG=new THREE.CylinderGeometry(0.05,0.05,1,10), tim=new THREE.InstancedMesh(tubeG,steel,tubes.length); tubes.forEach((m,k)=>tim.setMatrixAt(k,m)); tim.castShadow=true; gate.add(tim);
     gate.position.set(gs.x+gnn.x*(W/2),gs.y,gs.z+gnn.z*(W/2)); gate.userData.base=gate.position.clone(); gate.userData.out=new THREE.Vector3(-gnn.x,0,-gnn.z); gate.rotation.y=-gs.th; gate.traverse(m=>{ if(m.isMesh){ m.castShadow=true; m.receiveShadow=true; } }); scene.add(gate);
     // 砂ぼこり（ダートのみ）
     let dust=null;
@@ -1510,19 +1534,25 @@ const SIM = (() => {
   }
   let cam={x:0,y:20,z:0,lx:0,ly:0,lz:0,init:false};
   let camMode='side';
+  const setFov=f=>{ if(R3.camera.fov!==f){ R3.camera.fov=f; R3.camera.updateProjectionMatrix(); } };
   function camera(R,info,dt,u,phase){
+    if(phase!=='race'||u<0.978) setFov(32);
     if(window.__CLOSE){ const H=horses[0], p=H.wrap.position, th=-H.wrap.rotation.y, c=window.__CLOSE;   // 確認用の寄り（本番では使わない）
       const fx=Math.cos(th), fz=Math.sin(th), rx=-Math.sin(th), rz=Math.cos(th);
       R3.camera.position.set(p.x+fx*c[0]+rx*c[1], p.y+c[2], p.z+fz*c[0]+rz*c[1]); R3.camera.lookAt(p.x, p.y+1.3, p.z); return; }
     const {P,W}=W3, p=at(P,Math.max(0,info.rLead-6)), nn=innerN(P,p.th);
-    const mode = phase==='gate'?'side' : (u>0.25&&u<0.55?'air' : (u>=0.978?'goal':(u>0.935?'front':(u>0.72?'inner':'side'))));
+    const mode = phase==='gate'?'side' : (u>0.25&&u<0.55?'air' : (u>=0.978?'goal':(u>0.935?'front':'side')));
     if(mode!==camMode){ cam.init=false; camMode=mode; }
     if(mode==='air'){ const tx=info.cx-nn.x*(W/2+38), tz=info.cz-nn.z*(W/2+38);
       const k=cam.init?Math.min(1,dt*0.006):1; cam.init=true; cam.x+=(tx-cam.x)*k; cam.y+=(info.cy+34-cam.y)*k; cam.z+=(tz-cam.z)*k;
       R3.camera.position.set(cam.x,cam.y,cam.z); R3.camera.lookAt(info.cx,info.cy,info.cz); W3.sun.position.set(info.cx+40,80,info.cz+30); W3.sun.target.position.set(info.cx,info.cy,info.cz); return; }
     if(mode==='goal'){ const g=at(P,0), gn=innerN(P,g.th), asp=Math.max(1,1.6/Math.max(0.5,R3.camera.aspect)), back=(W*0.9+8)*asp;
-      // 内馬場からゴール線の真横を撮る（奥にゴール板とスタンド）
-      R3.camera.position.set(g.x+gn.x*(W/2+back),g.y+3.2,g.z+gn.z*(W/2+back)); R3.camera.lookAt(g.x-gn.x*W*0.2,g.y+2.2,g.z-gn.z*W*0.2);
+      // スタンド側（外）からゴール線の真横を撮る。ゴール板が手前、奥に内馬場とビジョン
+      // スタンドの前（外ラチとスタンドの間）の高い所から、ゴール線を斜め前に見る。縦長の画面は高さを上げて馬群を入れる
+      // 中継と同じく、スタンドの高い所から望遠でゴール線の真横を撮る（ゴール板が手前に細く入る）
+      const ox=-gn.x, oz=-gn.z, fx=Math.cos(g.th), fz=Math.sin(g.th), cd=W/2+18, hy=15;
+      setFov(asp>1.2?30:20);
+      R3.camera.position.set(g.x+ox*cd-fx*3,g.y+hy,g.z+oz*cd-fz*3); R3.camera.lookAt(g.x-ox*W*0.1,g.y+1.2,g.z-oz*W*0.1);
       W3.sun.position.set(g.x+40,80,g.z+30); W3.sun.target.position.set(g.x,g.y,g.z); return; }
     if(mode==='front'){ const g=at(P,Math.max(0,info.rLead-30)), gn=innerN(P,g.th);
       R3.camera.position.set(g.x-gn.x*(W/2-4),g.y+2.6,g.z-gn.z*(W/2-4)); R3.camera.lookAt(info.cx,info.cy+1.2,info.cz);
@@ -1582,6 +1612,12 @@ const SIM = (() => {
     const span=Math.max(36, lead-last+18), x1=lead+span*0.12, x0=x1-span, X=p=>pad+(p-x0)/(x1-x0)*(w-2*pad);
     const mx=Math.max(...ord.map(o=>o.H.lane||0)); trkLane+=((Math.max(7,mx+1.5))-trkLane)*0.08;
     const yT=h*0.2, yB=h*0.86, Y=l=>yT+Math.min(1,l/trkLane)*(yB-yT);
+    // 進む向きが分かるよう、うっすら流れる矢印と「進行方向」の札
+    { const step=46*d, sh=((performance.now()/1000*60*d)%step); g.fillStyle='rgba(255,255,255,.07)';
+      for(let x=-step+sh;x<w+step;x+=step){ const yc=(yT+yB)/2, a=(yB-yT)*0.42; g.beginPath(); g.moveTo(x,yc-a); g.lineTo(x+a*0.55,yc); g.lineTo(x,yc+a); g.lineTo(x+a*0.25,yc); g.closePath(); g.fill(); } }
+    { const t='進行方向', fs=Math.round(11*d); g.font=`800 ${fs}px "Hiragino Sans","Noto Sans JP",sans-serif`; const tw=g.measureText(t).width, bx=w-pad-tw-fs*1.6, by=h-fs*1.7;
+      g.fillStyle='rgba(255,255,255,.92)'; g.textAlign='left'; g.textBaseline='middle'; g.fillText(t,bx,by);
+      g.beginPath(); g.moveTo(bx+tw+fs*0.4,by-fs*0.5); g.lineTo(bx+tw+fs*1.3,by); g.lineTo(bx+tw+fs*0.4,by+fs*0.5); g.closePath(); g.fill(); }
     // 内ラチ
     g.strokeStyle='rgba(255,255,255,.85)'; g.lineWidth=2*d; g.beginPath(); g.moveTo(0,yT-8*d); g.lineTo(w,yT-8*d); g.stroke();
     // ハロン棒（残り200mごと）とゴール
@@ -1594,7 +1630,8 @@ const SIM = (() => {
     const r=Math.max(6*d,Math.min(h*0.13,12*d,w/(ord.length*1.9)));   // 狭い画面では小さく
     ord.slice().reverse().forEach(({H,prog})=>{ const x=X(prog), y=Y(H.lane||0), wk=H.o.h.waku;
       if(R.mine===H.o.h.no){ g.strokeStyle='#FF3B30'; g.lineWidth=2.5*d; g.beginPath(); g.arc(x,y,r+3.5*d,0,7); g.stroke(); }
-      g.fillStyle=hex(CAP[wk]||0xffffff); g.strokeStyle='rgba(0,0,0,.75)'; g.lineWidth=1.4*d; g.beginPath(); g.arc(x,y,r,0,7); g.fill(); g.stroke();
+      g.fillStyle=hex(CAP[wk]||0xffffff); g.strokeStyle='rgba(0,0,0,.75)'; g.lineWidth=1.4*d;
+      g.beginPath(); g.arc(x,y,r,Math.PI*0.22,Math.PI*1.78); g.lineTo(x+r*1.55,y); g.closePath(); g.fill(); g.stroke();   // 進む向きに尖った形
       g.fillStyle=[1,5].includes(+wk)?'#111':'#fff'; g.font=`900 ${Math.round(r*1.15)}px "Helvetica Neue",Arial,sans-serif`; g.textAlign='center'; g.textBaseline='middle'; g.fillText(String(H.o.h.no),x,y+0.5*d); });
   }
   function call(R,u,info){
