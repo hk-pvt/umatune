@@ -507,7 +507,7 @@ body.simopen{overflow:hidden}
     <div class="sim-ctl"><button class="btn solid" id="simAgain">走らせる</button><button class="btn" id="simK">1000回走らせる</button></div>
     <div class="sim-res" id="simResult" hidden></div>
     <p class="sim-note">走りの途中の動きは演出です。着順は、自分の作戦の評価から確率で決めています。</p>
-    <p class="sim-note sim-credit">3D: Horse by <a href="https://sketchfab.com/henry_7" target="_blank" rel="noopener">henry_7</a> (CC BY 4.0) / sky &amp; ground: Poly Haven (CC0) / 版 10/25 11:01</p>
+    <p class="sim-note sim-credit">3D: Horse by <a href="https://sketchfab.com/henry_7" target="_blank" rel="noopener">henry_7</a> (CC BY 4.0) / sky &amp; ground: Poly Haven (CC0) / 版 10/25 11:24</p>
   </div>
 </div>
 <div class="modal" id="modal" hidden></div>
@@ -1038,15 +1038,17 @@ function poseJockey(root, pose) {
 const BARREL = [0.557,0.564,0.156,0.195,0.169,0.208,0.229,0.248,0.278,0.295,0.311,0.337,0.362,0.385,0.407,0.443,0.487,0.518,0.532,0.52,0.491,0.449,0.411,0.395,0.374,0.349,0.315,0.295,0.276,0.254,0.235,0.213,0.197,0.448,0.549,0.549,0.557];
 function barrelR(a) { const f = (a + Math.PI) / (Math.PI * 2) * 36, i = Math.floor(f), t = f - i; return BARREL[i] * (1 - t) + BARREL[Math.min(36, i + 1)] * t; }
 function saddleCloth(no, opt) {
-  const o = Object.assign({ A: 1.75, len: 0.6, cy: -0.25, gap: 0.025 }, opt || {});
+  const o = Object.assign({ A: 1.3, len: 0.52, cy: -0.25, gap: 0.025, name: '' }, opt || {});   // 背から胴の半分ほどまで（実物の大きさ）
   // 布の縦（背から裾まで）の長さに合わせて画像の縦横比をそろえる（数字が縦に伸びないように）
   let arc = 0; for (let k = 0; k < 60; k++) { const a0 = -o.A + 2 * o.A * k / 60, a1 = a0 + 2 * o.A / 60; arc += (barrelR(a0) + barrelR(a1)) / 2 * (a1 - a0); }
   const W = 512, Hc = Math.round(W * arc / o.len), c = document.createElement('canvas'); c.width = W; c.height = Hc; const g = c.getContext('2d');
   g.fillStyle = '#F7F6F1'; g.fillRect(0, 0, W, Hc);
-  g.fillStyle = '#151515'; g.font = 'bold 170px "Helvetica Neue",Arial,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-  // v=0 が左の裾・v=1 が右の裾。左は左右反転、右は上下反転して、外から見て正しく読めるようにする
-  g.save(); g.translate(W / 2, Hc * (1 - 0.24)); g.scale(-1, 1); g.fillText(String(no), 0, 0); g.restore();
-  g.save(); g.translate(W / 2, Hc * (1 - 0.76)); g.scale(1, -1); g.fillText(String(no), 0, 0); g.restore();
+  g.fillStyle = '#151515'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  // 番号と、その下に小さく馬名。v=0 が左の裾・v=1 が右の裾。左は左右反転、右は上下反転して、外から見て正しく読めるようにする
+  const label = () => { g.font = 'bold 150px "Helvetica Neue",Arial,sans-serif'; g.fillText(String(no), 0, -18);
+    if (o.name) { g.font = 'bold 34px "Hiragino Sans","Noto Sans JP",sans-serif'; g.fillText(o.name, 0, 82, W * 0.9); } };
+  g.save(); g.translate(W / 2, Hc * (1 - 0.3)); g.scale(-1, 1); label(); g.restore();
+  g.save(); g.translate(W / 2, Hc * (1 - 0.7)); g.scale(1, -1); label(); g.restore();
   const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
   const nu = 8, na = 30, pos = [], uv = [], idx = [];
   for (let j = 0; j <= na; j++) for (let i = 0; i <= nu; i++) {
@@ -1164,7 +1166,7 @@ const SIM = (() => {
     return jockeySrc;
   }
   // 体の部位ごとに、勝負服（胴・袖）と単色の当て布（白・黒・帽色・手袋）へ UV を振る。形は全騎手で共有
-  const JK_PART=[['body',/Spine|Shoulder/],['sleeve',/Arm/],['glove',/Hand/],['cap',/Neck|Head/],['boot',/Leg$|Foot|Toe/],['white',/Hips|UpLeg/]];
+  const JK_PART=[['body',/Spine|Shoulder/],['sleeve',/Arm/],['glove',/Hand/],['cap',/Neck|Head/],['white',/Hips|UpLeg/],['boot',/Leg$|Foot|Toe/]];   // 太もも=白・すね=黒
   function prepJockeyUV(root){
     root.traverse(m=>{ if(!m.isSkinnedMesh) return;
       const g=m.geometry, P=g.attributes.position, SI=g.attributes.skinIndex, SW=g.attributes.skinWeight, n=P.count, names=m.skeleton.bones.map(b=>b.name.replace(/^mixamorig:?/,''));
@@ -1346,7 +1348,7 @@ const SIM = (() => {
       const num=canvasTex(64,64,(g,w,h)=>{ g.fillStyle='#fff'; g.fillRect(0,0,w,h); g.fillStyle='#1C1C1C'; g.font='bold 46px sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(String(i+1),w/2,h/2+3); });
       const nb=new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.5),new THREE.MeshBasicMaterial({map:num})); nb.position.set(len/2+0.17,H2+0.3,zc); nb.rotation.y=Math.PI/2; gate.add(nb); }
     for(const zz of [zs*0.2, zs*(span+0.8)]) for(const x of [-len/2,len/2]){ const wh=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,0.25,16),dark); wh.rotation.x=Math.PI/2; wh.position.set(x,0.4,zz); gate.add(wh); }
-    gate.position.set(gs.x+gnn.x*(W/2),gs.y,gs.z+gnn.z*(W/2)); gate.rotation.y=-gs.th; gate.traverse(m=>{ if(m.isMesh){ m.castShadow=true; m.receiveShadow=true; } }); scene.add(gate);
+    gate.position.set(gs.x+gnn.x*(W/2),gs.y,gs.z+gnn.z*(W/2)); gate.userData.base=gate.position.clone(); gate.userData.out=new THREE.Vector3(-gnn.x,0,-gnn.z); gate.rotation.y=-gs.th; gate.traverse(m=>{ if(m.isMesh){ m.castShadow=true; m.receiveShadow=true; } }); scene.add(gate);
     // 砂ぼこり（ダートのみ）
     let dust=null;
     if(!turf){ const N=900, g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(N*3),3)); g.setAttribute('alpha',new THREE.Float32BufferAttribute(new Float32Array(N),1));
@@ -1440,7 +1442,7 @@ const SIM = (() => {
     }
     // ゼッケン：鞍の下、馬体の両脇
     const halfW=Math.min(size.x,size.z)*sc/2, cloth=numTex(o.h.no,'#FAFAF7','#151515',128,96,72);
-    if(rj){ const sc2=saddleCloth(o.h.no); sc2.position.set(-0.2,0,0); holder.add(sc2); }
+    if(rj){ const sc2=saddleCloth(o.h.no, {name:o.h.name}); sc2.position.set(-0.36,0,0); holder.add(sc2); }   // 騎手のひざから下が布の前に出る位置
     else for(const s of [-1,1]){ const pl=new THREE.Mesh(new THREE.PlaneGeometry(0.62,0.44),new THREE.MeshStandardMaterial({map:cloth,roughness:0.8,side:THREE.DoubleSide}));
       pl.position.set(-0.1,-0.42,s*(halfW*0.95+0.02));
       if(s<0) pl.rotation.y=Math.PI; holder.add(pl); }
@@ -1574,6 +1576,8 @@ const SIM = (() => {
         phase='race'; const tau=Math.min(1,(el-GATE)/DUR); u=uOf(tau);
         const post=Math.max(0,el-GATE-DUR); if(post>0) u=1+post/1000*POSTV/R.D;   // 先頭の入線後も同じ速さで流す
         W3.doors.forEach(d=>d.rotation.y=1.5*d.userData.sd);
+        { const k=smooth(3000,7000,el-GATE), G=W3.gate;   // 発走後にゲートを外ラチの外へ引き出す（1周するレースで馬がすり抜けないように）
+          if(G.visible){ G.position.copy(G.userData.base).addScaledVector(G.userData.out,(W3.W+R.N*1.2+6)*k); if(k>=1) G.visible=false; } }
         const v=(u-prevU)/(dt/1000)*R.D; prevU=u;                      // 画面上の速さ（m/秒）
         const info=place(R,u,false);
         horses.forEach(H=>{ H.act.timeScale=Math.max(0.6,Math.min(2.4,v/14)); H.mixer.update(dt/1000); follow(H); if(Math.random()<0.35) puff(H,v); }); dustStep(dt);
