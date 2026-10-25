@@ -507,7 +507,7 @@ body.simopen{overflow:hidden}
     <div class="sim-ctl"><button class="btn solid" id="simAgain">走らせる</button><button class="btn" id="simK">1000回走らせる</button></div>
     <div class="sim-res" id="simResult" hidden></div>
     <p class="sim-note">走りの途中の動きは演出です。着順は、自分の作戦の評価から確率で決めています。</p>
-    <p class="sim-note sim-credit">3D: Horse by <a href="https://sketchfab.com/henry_7" target="_blank" rel="noopener">henry_7</a> (CC BY 4.0) / sky &amp; ground: Poly Haven (CC0) / 版 10/25 10:41</p>
+    <p class="sim-note sim-credit">3D: Horse by <a href="https://sketchfab.com/henry_7" target="_blank" rel="noopener">henry_7</a> (CC BY 4.0) / sky &amp; ground: Poly Haven (CC0) / 版 10/25 11:01</p>
   </div>
 </div>
 <div class="modal" id="modal" hidden></div>
@@ -1039,12 +1039,14 @@ const BARREL = [0.557,0.564,0.156,0.195,0.169,0.208,0.229,0.248,0.278,0.295,0.31
 function barrelR(a) { const f = (a + Math.PI) / (Math.PI * 2) * 36, i = Math.floor(f), t = f - i; return BARREL[i] * (1 - t) + BARREL[Math.min(36, i + 1)] * t; }
 function saddleCloth(no, opt) {
   const o = Object.assign({ A: 1.75, len: 0.6, cy: -0.25, gap: 0.025 }, opt || {});
-  const c = document.createElement('canvas'); c.width = 512; c.height = 512; const g = c.getContext('2d');
-  g.fillStyle = '#F7F6F1'; g.fillRect(0, 0, 512, 512);
-  g.fillStyle = '#151515'; g.font = 'bold 120px "Helvetica Neue",Arial,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  // 布の縦（背から裾まで）の長さに合わせて画像の縦横比をそろえる（数字が縦に伸びないように）
+  let arc = 0; for (let k = 0; k < 60; k++) { const a0 = -o.A + 2 * o.A * k / 60, a1 = a0 + 2 * o.A / 60; arc += (barrelR(a0) + barrelR(a1)) / 2 * (a1 - a0); }
+  const W = 512, Hc = Math.round(W * arc / o.len), c = document.createElement('canvas'); c.width = W; c.height = Hc; const g = c.getContext('2d');
+  g.fillStyle = '#F7F6F1'; g.fillRect(0, 0, W, Hc);
+  g.fillStyle = '#151515'; g.font = 'bold 170px "Helvetica Neue",Arial,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
   // v=0 が左の裾・v=1 が右の裾。左は左右反転、右は上下反転して、外から見て正しく読めるようにする
-  g.save(); g.translate(256, 512 * (1 - 0.2)); g.scale(-1, 1); g.fillText(String(no), 0, 0); g.restore();
-  g.save(); g.translate(256, 512 * (1 - 0.8)); g.scale(1, -1); g.fillText(String(no), 0, 0); g.restore();
+  g.save(); g.translate(W / 2, Hc * (1 - 0.24)); g.scale(-1, 1); g.fillText(String(no), 0, 0); g.restore();
+  g.save(); g.translate(W / 2, Hc * (1 - 0.76)); g.scale(1, -1); g.fillText(String(no), 0, 0); g.restore();
   const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
   const nu = 8, na = 30, pos = [], uv = [], idx = [];
   for (let j = 0; j <= na; j++) for (let i = 0; i <= nu; i++) {
@@ -1149,7 +1151,7 @@ const SIM = (() => {
     if(horseSrc) return horseSrc;
     // 写実的な馬（Horse by henry_7, CC BY）は別ファイル。読めなければ埋め込みの簡易モデルで動かす
     try{ horseSrc=await new Promise((ok,ng)=>new THREE.GLTFLoader().load('assets/horse.glb',ok,undefined,ng)); horseSrc.real=true; }
-    catch(e){ const bin=Uint8Array.from(atob(GLB.split(',')[1]),c=>c.charCodeAt(0)).buffer;
+    catch(e){ console.warn('馬のモデルを読めないため簡易の馬で表示', e); const bin=Uint8Array.from(atob(GLB.split(',')[1]),c=>c.charCodeAt(0)).buffer;
       horseSrc=await new Promise((ok,ng)=>new THREE.GLTFLoader().parse(bin,'',ok,ng)); }
     return horseSrc;
   }
@@ -1158,7 +1160,7 @@ const SIM = (() => {
   async function loadJockey(){
     if(jockeySrc!==undefined) return jockeySrc;
     try{ const g=await new Promise((ok,ng)=>new THREE.GLTFLoader().load('assets/jockey.glb',ok,undefined,ng)); prepJockeyUV(g.scene); jockeySrc=g; }
-    catch(e){ jockeySrc=null; }
+    catch(e){ console.warn('騎手のモデルを読めないため簡易の騎手で表示', e); jockeySrc=null; }
     return jockeySrc;
   }
   // 体の部位ごとに、勝負服（胴・袖）と単色の当て布（白・黒・帽色・手袋）へ UV を振る。形は全騎手で共有
@@ -1167,7 +1169,7 @@ const SIM = (() => {
     root.traverse(m=>{ if(!m.isSkinnedMesh) return;
       const g=m.geometry, P=g.attributes.position, SI=g.attributes.skinIndex, SW=g.attributes.skinWeight, n=P.count, names=m.skeleton.bones.map(b=>b.name.replace(/^mixamorig:?/,''));
       const part=new Array(n);
-      for(let i=0;i<n;i++){ let best=0,bw=-1; for(let k=0;k<4;k++){ const w=SW.getComponent(i,k); if(w>bw){ bw=w; best=SI.getComponent(i,k); } }
+      for(let i=0;i<n;i++){ let best=0,bw=-1; for(let k=0;k<4;k++){ const w=SW.array[i*4+k]; if(w>bw){ bw=w; best=SI.array[i*4+k]; } }   // r147 に getComponent は無い
         const nm=names[best]||''; part[i]=(JK_PART.find(([,re])=>re.test(nm))||['white'])[0]; }
       const ext=(pt,f)=>{ let a=1e9,b=-1e9; for(let i=0;i<n;i++) if(part[i]===pt){ const v=f(i); a=Math.min(a,v); b=Math.max(b,v); } return [a,b]; };
       const [y0,y1]=ext('body',i=>P.getY(i)), [x0,x1]=ext('sleeve',i=>Math.abs(P.getX(i))), [ya0,ya1]=ext('sleeve',i=>P.getY(i)), yac=(ya0+ya1)/2;
@@ -1498,6 +1500,9 @@ const SIM = (() => {
   let cam={x:0,y:20,z:0,lx:0,ly:0,lz:0,init:false};
   let camMode='side';
   function camera(R,info,dt,u,phase){
+    if(window.__CLOSE){ const H=horses[0], p=H.wrap.position, th=-H.wrap.rotation.y, c=window.__CLOSE;   // 確認用の寄り（本番では使わない）
+      const fx=Math.cos(th), fz=Math.sin(th), rx=-Math.sin(th), rz=Math.cos(th);
+      R3.camera.position.set(p.x+fx*c[0]+rx*c[1], p.y+c[2], p.z+fz*c[0]+rz*c[1]); R3.camera.lookAt(p.x, p.y+1.3, p.z); return; }
     const {P,W}=W3, p=at(P,Math.max(0,info.rLead-6)), nn=innerN(P,p.th);
     const mode = phase==='gate'?'side' : (u>0.25&&u<0.55?'air' : (u>=0.978?'goal':(u>0.935?'front':(u>0.72?'inner':'side'))));
     if(mode!==camMode){ cam.init=false; camMode=mode; }
