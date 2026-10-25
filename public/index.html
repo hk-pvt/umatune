@@ -508,7 +508,7 @@ body.simopen{overflow:hidden}
     <div class="sim-ctl"><button class="btn solid" id="simAgain">走らせる</button><button class="btn" id="simK">1000回走らせる</button></div>
     <div class="sim-res" id="simResult" hidden></div>
     <p class="sim-note">走りの途中の動きは演出です。着順は、自分の作戦の評価から確率で決めています。</p>
-    <p class="sim-note sim-credit">3D: Horse by <a href="https://sketchfab.com/henry_7" target="_blank" rel="noopener">henry_7</a> (CC BY 4.0) / sky &amp; ground: Poly Haven (CC0) / 版 10/25 15:45</p>
+    <p class="sim-note sim-credit">3D: Horse by <a href="https://sketchfab.com/henry_7" target="_blank" rel="noopener">henry_7</a> (CC BY 4.0) / sky &amp; ground: Poly Haven (CC0) / 版 10/25 16:01</p>
   </div>
 </div>
 <div class="modal" id="modal" hidden></div>
@@ -1604,20 +1604,27 @@ const SIM = (() => {
     g.fillStyle='#FFE15A'; g.strokeStyle='#222'; g.lineWidth=1.2*d; g.beginPath(); g.arc(q[0],q[1],rr,0,7); g.fill(); g.stroke();
   }
   // トラッキング: スタンド側から見た各馬の位置。左→右が進む向き、上が内ラチ。先頭を中心に寄せて表示
-  let trkLane=10;
+  let trkLane=10, trkDir=0, trkVote=0;
+  // いまの映像で馬が画面の右へ進んでいるか（+1）左へか（-1）。カメラが切り替わっても少し待ってから向きを変える
+  const tv1=new THREE.Vector3(), tv2=new THREE.Vector3();
+  function screenDir(info){ const H=info.order[0].H, th=-H.wrap.rotation.y;
+    tv1.copy(H.wrap.position).project(R3.camera); tv2.set(H.wrap.position.x+Math.cos(th)*5,H.wrap.position.y,H.wrap.position.z+Math.sin(th)*5).project(R3.camera);
+    const dx=tv2.x-tv1.x; return Math.abs(dx)<0.004?0:Math.sign(dx); }
   function tracking(R,info){
     const cv=$('#simTrack'); if(!cv) return; const d=fitCanvas(cv), g=cv.getContext('2d'), w=cv.width, h=cv.height;
     g.clearRect(0,0,w,h);
-    const ord=info.order, lead=ord[0].prog, last=ord[ord.length-1].prog, pad=14*d;
-    const span=Math.max(36, lead-last+18), x1=lead+span*0.12, x0=x1-span, X=p=>pad+(p-x0)/(x1-x0)*(w-2*pad);
+    const sd=screenDir(info); if(!trkDir) trkDir=sd||1;
+    const now=performance.now(); if(sd&&sd!==trkDir){ if(!trkVote) trkVote=now; if(now-trkVote>350){ trkDir=sd; trkVote=0; } } else trkVote=0;   // 0.35秒続いたら向きを変える
+    const ord=info.order, lead=ord[0].prog, last=ord[ord.length-1].prog, pad=14*d, F=trkDir;
+    const span=Math.max(36, lead-last+18), x1=lead+span*0.12, x0=x1-span, X=p=>{ const x=pad+(p-x0)/(x1-x0)*(w-2*pad); return F>0?x:w-x; };
     const mx=Math.max(...ord.map(o=>o.H.lane||0)); trkLane+=((Math.max(7,mx+1.5))-trkLane)*0.08;
     const yT=h*0.2, yB=h*0.86, Y=l=>yT+Math.min(1,l/trkLane)*(yB-yT);
     // 進む向きが分かるよう、うっすら流れる矢印と「進行方向」の札
     { const step=46*d, sh=((performance.now()/1000*60*d)%step); g.fillStyle='rgba(255,255,255,.07)';
-      for(let x=-step+sh;x<w+step;x+=step){ const yc=(yT+yB)/2, a=(yB-yT)*0.42; g.beginPath(); g.moveTo(x,yc-a); g.lineTo(x+a*0.55,yc); g.lineTo(x,yc+a); g.lineTo(x+a*0.25,yc); g.closePath(); g.fill(); } }
-    { const t='進行方向', fs=Math.round(11*d); g.font=`800 ${fs}px "Hiragino Sans","Noto Sans JP",sans-serif`; const tw=g.measureText(t).width, bx=w-pad-tw-fs*1.6, by=h-fs*1.7;
+      for(let k=-step+sh;k<w+step;k+=step){ const x=F>0?k:w-k, yc=(yT+yB)/2, a=(yB-yT)*0.42; g.beginPath(); g.moveTo(x,yc-a); g.lineTo(x+F*a*0.55,yc); g.lineTo(x,yc+a); g.lineTo(x+F*a*0.25,yc); g.closePath(); g.fill(); } }
+    { const t='進行方向', fs=Math.round(11*d); g.font=`800 ${fs}px "Hiragino Sans","Noto Sans JP",sans-serif`; const tw=g.measureText(t).width, by=h-fs*1.7, bx=F>0?w-pad-tw-fs*1.6:pad+fs*1.6;
       g.fillStyle='rgba(255,255,255,.92)'; g.textAlign='left'; g.textBaseline='middle'; g.fillText(t,bx,by);
-      g.beginPath(); g.moveTo(bx+tw+fs*0.4,by-fs*0.5); g.lineTo(bx+tw+fs*1.3,by); g.lineTo(bx+tw+fs*0.4,by+fs*0.5); g.closePath(); g.fill(); }
+      const ax=F>0?bx+tw+fs*0.4:bx-fs*0.4; g.beginPath(); g.moveTo(ax,by-fs*0.5); g.lineTo(ax+F*fs*0.9,by); g.lineTo(ax,by+fs*0.5); g.closePath(); g.fill(); }
     // 内ラチ
     g.strokeStyle='rgba(255,255,255,.85)'; g.lineWidth=2*d; g.beginPath(); g.moveTo(0,yT-8*d); g.lineTo(w,yT-8*d); g.stroke();
     // ハロン棒（残り200mごと）とゴール
@@ -1631,7 +1638,7 @@ const SIM = (() => {
     ord.slice().reverse().forEach(({H,prog})=>{ const x=X(prog), y=Y(H.lane||0), wk=H.o.h.waku;
       if(R.mine===H.o.h.no){ g.strokeStyle='#FF3B30'; g.lineWidth=2.5*d; g.beginPath(); g.arc(x,y,r+3.5*d,0,7); g.stroke(); }
       g.fillStyle=hex(CAP[wk]||0xffffff); g.strokeStyle='rgba(0,0,0,.75)'; g.lineWidth=1.4*d;
-      g.beginPath(); g.arc(x,y,r,Math.PI*0.22,Math.PI*1.78); g.lineTo(x+r*1.55,y); g.closePath(); g.fill(); g.stroke();   // 進む向きに尖った形
+      g.beginPath(); if(F>0) g.arc(x,y,r,Math.PI*0.22,Math.PI*1.78); else g.arc(x,y,r,-Math.PI*0.78,Math.PI*0.78); g.lineTo(x+F*r*1.55,y); g.closePath(); g.fill(); g.stroke();   // 進む向きに尖った形
       g.fillStyle=[1,5].includes(+wk)?'#111':'#fff'; g.font=`900 ${Math.round(r*1.15)}px "Helvetica Neue",Arial,sans-serif`; g.textAlign='center'; g.textBaseline='middle'; g.fillText(String(H.o.h.no),x,y+0.5*d); });
   }
   function call(R,u,info){
