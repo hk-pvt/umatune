@@ -1004,6 +1004,35 @@ const SILKS = (() => {
   return {parse, texture, icon, COLORS};
 })();
 
+/* 騎手（Mixamo の人型）の騎乗姿勢。骨の向きを「体の座標（前=+Z・上=+Y・左=+X）」の方向で指定して合わせる */
+const JOCKEY_POSE = {
+  Spine: [0, 0.55, 1], Spine1: [0, 0.35, 1], Spine2: [0, 0.3, 1], Neck: [0, 0.9, 0.7], Head: [0, 1, 0.25],
+  LeftShoulder: [1, 0, 0.35], LeftArm: [0.25, -0.8, 0.6], LeftForeArm: [-0.2, -0.45, 1],
+  RightShoulder: [-1, 0, 0.35], RightArm: [-0.25, -0.8, 0.6], RightForeArm: [0.2, -0.45, 1],
+  LeftUpLeg: [0.7, -0.25, 0.85], LeftLeg: [0.18, -0.9, -0.4], LeftFoot: [0, -0.3, 1],
+  RightUpLeg: [-0.7, -0.25, 0.85], RightLeg: [-0.18, -0.9, -0.4], RightFoot: [0, -0.3, 1],
+};
+function poseJockey(root, pose) {
+  pose = pose || JOCKEY_POSE;
+  const bones = {}; root.traverse(b => { if (b.isBone) bones[b.name.replace(/^mixamorig:?/, '')] = b; });
+  const order = ['Hips', 'Spine', 'Spine1', 'Spine2', 'Neck', 'Head', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'RightShoulder', 'RightArm', 'RightForeArm',
+    'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'RightUpLeg', 'RightLeg', 'RightFoot'];
+  const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), q = new THREE.Quaternion(), qp = new THREE.Quaternion(), rq = new THREE.Quaternion();
+  root.updateMatrixWorld(true); root.getWorldQuaternion(rq);
+  for (const n of order) {
+    const b = bones[n], d = pose[n]; if (!b || !d) continue;
+    const c = b.children.find(x => x.isBone); if (!c) continue;
+    b.updateMatrixWorld(true);
+    b.getWorldPosition(v1); c.getWorldPosition(v2); const cur = v2.sub(v1).normalize();
+    const want = new THREE.Vector3(...d).normalize().applyQuaternion(rq);
+    q.setFromUnitVectors(cur, want);                       // 世界座標での回し分
+    const wq = b.getWorldQuaternion(new THREE.Quaternion()).premultiply(q);
+    b.parent.getWorldQuaternion(qp); b.quaternion.copy(qp.invert().multiply(wq));
+    b.updateMatrixWorld(true);
+  }
+  return bones;
+}
+
 /* ── 3Dでレースを走らせる ──────────────────────────────
    着順: 自分の作戦の評価 → 勝ちやすさ w=sigmoid(s) で、くじ引き（Plackett–Luce）
    走り: ゲートから発走 → 序盤は予想の位置取り → 中盤は詰まる → 直線で差し馬が外へ → くじの着順・着差でゴール
@@ -1100,6 +1129,44 @@ const SIM = (() => {
     catch(e){ const bin=Uint8Array.from(atob(GLB.split(',')[1]),c=>c.charCodeAt(0)).buffer;
       horseSrc=await new Promise((ok,ng)=>new THREE.GLTFLoader().parse(bin,'',ok,ng)); }
     return horseSrc;
+  }
+  // 騎手（Mixamo の人型を間引いたもの）。読めなければ図形の騎手で動かす
+  let jockeySrc;
+  async function loadJockey(){
+    if(jockeySrc!==undefined) return jockeySrc;
+    try{ const g=await new Promise((ok,ng)=>new THREE.GLTFLoader().load('assets/jockey.glb',ok,undefined,ng)); prepJockeyUV(g.scene); jockeySrc=g; }
+    catch(e){ jockeySrc=null; }
+    return jockeySrc;
+  }
+  // 体の部位ごとに、勝負服（胴・袖）と単色の当て布（白・黒・帽色・手袋）へ UV を振る。形は全騎手で共有
+  const JK_PART=[['body',/Spine|Shoulder/],['sleeve',/Arm/],['glove',/Hand/],['cap',/Neck|Head/],['boot',/Leg$|Foot|Toe/],['white',/Hips|UpLeg/]];
+  function prepJockeyUV(root){
+    root.traverse(m=>{ if(!m.isSkinnedMesh) return;
+      const g=m.geometry, P=g.attributes.position, SI=g.attributes.skinIndex, SW=g.attributes.skinWeight, n=P.count, names=m.skeleton.bones.map(b=>b.name.replace(/^mixamorig:?/,''));
+      const part=new Array(n);
+      for(let i=0;i<n;i++){ let best=0,bw=-1; for(let k=0;k<4;k++){ const w=SW.getComponent(i,k); if(w>bw){ bw=w; best=SI.getComponent(i,k); } }
+        const nm=names[best]||''; part[i]=(JK_PART.find(([,re])=>re.test(nm))||['white'])[0]; }
+      const ext=(pt,f)=>{ let a=1e9,b=-1e9; for(let i=0;i<n;i++) if(part[i]===pt){ const v=f(i); a=Math.min(a,v); b=Math.max(b,v); } return [a,b]; };
+      const [y0,y1]=ext('body',i=>P.getY(i)), [x0,x1]=ext('sleeve',i=>Math.abs(P.getX(i))), [ya0,ya1]=ext('sleeve',i=>P.getY(i)), yac=(ya0+ya1)/2;
+      const PATCH={white:0,boot:1,cap:2,glove:3}, uv=new Float32Array(n*2);
+      for(let i=0;i<n;i++){ const x=P.getX(i), y=P.getY(i), z=P.getZ(i), pt=part[i];
+        if(pt==='body'){ uv[i*2]=0.5*(Math.atan2(x,z)/(Math.PI*2)+0.5); uv[i*2+1]=0.5+0.5*Math.min(1,Math.max(0,(y-y0)/(y1-y0))); }
+        else if(pt==='sleeve'){ uv[i*2]=0.5+0.5*Math.min(1,Math.max(0,(Math.abs(x)-x0)/(x1-x0))); uv[i*2+1]=0.5+0.5*(Math.atan2(y-yac,z)/(Math.PI*2)+0.5); }
+        else { uv[i*2]=(PATCH[pt]+0.5)/4; uv[i*2+1]=0.25; } }
+      g.setAttribute('uv',new THREE.BufferAttribute(uv,2)); });
+  }
+  function jockeyAtlas(silkText, capColor){
+    const c=document.createElement('canvas'); c.width=512; c.height=512; const x=c.getContext('2d');
+    x.drawImage(SILKS.texture(silkText,128),0,0,512,256);                       // 上半分: 胴｜袖
+    ['#F2F1EC','#141414','#'+capColor.toString(16).padStart(6,'0'),'#F7F7F4'].forEach((col,i)=>{ x.fillStyle=col; x.fillRect(i*128,256,128,256); });
+    const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; t.anisotropy=4; return t;
+  }
+  function jockeyReal(src, silkText, capColor){
+    const g=THREE.SkeletonUtils.clone(src.scene), mat=new THREE.MeshStandardMaterial({map:jockeyAtlas(silkText,capColor),roughness:0.55});
+    g.traverse(m=>{ if(m.isMesh){ m.material=mat; m.castShadow=true; m.frustumCulled=false; } });
+    g.scale.setScalar(0.0088); g.rotation.y=Math.PI/2;                         // 1.58m・前を +X に
+    const bones=poseJockey(g);
+    return {g, bones, arms:[bones.LeftArm,bones.RightArm].filter(Boolean).map(b=>({b,base:b.quaternion.clone()}))};
   }
   let ENV=null;
   async function loadEnv(renderer){
@@ -1312,15 +1379,15 @@ const SIM = (() => {
       g.fillStyle=bg; g.strokeStyle='#111'; g.lineWidth=6; g.beginPath(); g.arc(w/2,h/2,54,0,7); g.fill(); g.stroke();
       g.fillStyle=fg; g.font='bold 66px "Helvetica Neue",Arial,sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(String(no),w/2,h/2+4); });
     const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,depthTest:false,depthWrite:false,sizeAttenuation:false})); sp.scale.set(0.042,0.042,1); sp.renderOrder=10; return sp; }
-  function makeHorse(o, src, silkText){
+  function makeHorse(o, src, silkText, jsrc){
     const obj=THREE.SkeletonUtils.clone(src.scene);
     obj.traverse(m=>{ if(m.isMesh){ m.castShadow=true; m.frustumCulled=false;
       const mats=Array.isArray(m.material)?m.material:[m.material];
       const nm=mats.map(mt=>{ const k=o.coat;
         if(mt.map){ // 写実モデル: 質感はそのまま、毛色は色を掛けて変える（芦毛だけは柄を外して灰色に）
           const c=mt.clone(); c.name=mt.name;
-          if(c.name==='Horse'){ if(k.n==='芦毛'){ c.map=null; c.color.setHex(0xB9B6B0); } else c.color.setHex(k.t); }
-          else if(c.name==='Hair'){ if(k.n==='芦毛'){ c.map=null; c.color.setHex(0x8E8B86); } else c.color.setHex(k.t); }
+          if(c.name==='Horse') c.color.setHex(k.m).multiplyScalar(1.6);          // 地は白斑を消した灰色（repack_glb.py）
+          else if(c.name==='Hair') c.color.setHex(k.h).multiplyScalar(k.n==='芦毛'||k.n==='栗毛'?1.2:2.0);
           return c; }
         const c=new THREE.MeshStandardMaterial({color:mt.color.clone(),roughness:0.55,metalness:0,name:mt.name});
         if(c.name==='Main') c.color.setHex(k.m); else if(c.name==='Main_Dark') c.color.setHex(k.d); else if(c.name==='Main_Light') c.color.setHex(k.l);
@@ -1328,7 +1395,7 @@ const SIM = (() => {
       m.material=Array.isArray(m.material)?nm:nm[0]; } });
     // 体の長さを 2.6m に
     const box=new THREE.Box3().setFromObject(obj), size=new THREE.Vector3(); box.getSize(size);
-    const L=Math.max(size.x,size.z), sc=2.6/L; obj.scale.multiplyScalar(sc);
+    const L=Math.max(size.x,size.z), sc=(src.real?2.2:2.6)/L; obj.scale.multiplyScalar(sc);   // 写実モデルは駆けると体が伸びるので短めに
     const wrap=new THREE.Group(); wrap.add(obj);
     obj.rotation.y = size.z>size.x ? Math.PI/2 : 0;   // 進行方向を +X に
     const mixer=new THREE.AnimationMixer(obj); const clip=src.animations.find(a=>/Gallop$/.test(a.name))||src.animations[0];
@@ -1336,18 +1403,26 @@ const SIM = (() => {
     const idle=src.animations.find(a=>/Idle$|Ilde$/.test(a.name));
     // 騎手を背中の骨に（写実モデルは背中の中ほどの骨）
     let torso=null; obj.traverse(b=>{ if(b.isBone&&(b.name==='Torso'||b.name==='BN_Spine_02_04_04')) torso=b; });
-    const j=jockey(silkText, CAP[o.h.waku]||0xffffff, !src.real);
-    const holder=new THREE.Group(); holder.add(j); wrap.add(holder);
-    const hb=new THREE.Box3().setFromObject(obj); holder.position.set(0.05,hb.max.y*0.86,0);
+    const holder=new THREE.Group(); wrap.add(holder);
+    let j=null, rj=null;
+    if(src.real&&torso&&jsrc){ // 背中の骨の位置を基準に、腰を少し後ろ・上へ
+      wrap.updateMatrixWorld(true); const tp=new THREE.Vector3(); torso.getWorldPosition(tp); wrap.worldToLocal(tp); holder.position.copy(tp).setZ(0);
+      rj=jockeyReal(jsrc, silkText, CAP[o.h.waku]||0xffffff); holder.add(rj.g); holder.updateMatrixWorld(true);
+      const hp=new THREE.Vector3(); rj.bones.Hips.getWorldPosition(hp); holder.worldToLocal(hp); rj.g.position.set(-0.22-hp.x,0.42-hp.y,-hp.z);
+    } else {
+      j=jockey(silkText, CAP[o.h.waku]||0xffffff, !src.real); holder.add(j);
+      const hb=new THREE.Box3().setFromObject(obj); holder.position.set(0.05,hb.max.y*0.86,0);
+    }
     // ゼッケン：鞍の下、馬体の両脇
     const halfW=Math.min(size.x,size.z)*sc/2, cloth=numTex(o.h.no,'#FAFAF7','#151515',128,96,72);
     for(const s of [-1,1]){ const pl=new THREE.Mesh(new THREE.PlaneGeometry(0.62,0.44),new THREE.MeshStandardMaterial({map:cloth,roughness:0.8,side:THREE.DoubleSide}));
-      pl.position.set(-0.1,-0.42,s*(halfW*0.95+0.02)); if(s<0) pl.rotation.y=Math.PI; holder.add(pl); }
-    const bd=badge(o.h.no,o.h.waku); bd.position.set(0,1.3,0); holder.add(bd);
+      if(rj){ pl.scale.setScalar(0.8); pl.material.side=THREE.FrontSide; pl.position.set(-0.18,-0.22,s*0.24); } else pl.position.set(-0.1,-0.42,s*(halfW*0.95+0.02));
+      if(s<0) pl.rotation.y=Math.PI; holder.add(pl); }
+    const bd=badge(o.h.no,o.h.waku); bd.position.set(0,rj?1.55:1.3,0); holder.add(bd);
     // 胴の骨の位置から騎手の高さのずれを測っておき、毎フレーム骨に合わせる
     wrap.updateMatrixWorld(true); const v=new THREE.Vector3(); let dy=0, dx=0;
     if(torso){ torso.getWorldPosition(v); wrap.worldToLocal(v); dy=holder.position.y-v.y; dx=holder.position.x-v.x; }
-    return {wrap,mixer,act,idle:idle?mixer.clipAction(idle):null,torso,holder,clip,dy,dx,arms:j.userData.arms};
+    return {wrap,mixer,act,idle:idle?mixer.clipAction(idle):null,torso,holder,clip,dy,dx,arms:j?j.userData.arms:[],rarms:rj?rj.arms:[]};
   }
 
   const tmpV=new THREE.Vector3();
@@ -1358,7 +1433,9 @@ const SIM = (() => {
     for(let i=0;i<D.N;i++){ if(D.life[i]<=0){ a[i*3+1]=-99; continue; } D.life[i]-=s*0.9; a[i*3]+=D.vel[i*3]*s; a[i*3+1]+=D.vel[i*3+1]*s; a[i*3+2]+=D.vel[i*3+2]*s; }
     D.pts.geometry.attributes.position.needsUpdate=true; }
   function follow(H){ if(!H.torso) return; H.wrap.updateMatrixWorld(true); H.torso.getWorldPosition(tmpV); H.wrap.worldToLocal(tmpV); H.holder.position.set(tmpV.x+H.dx,tmpV.y+H.dy,0);
-    const ph=Math.sin(H.act.time/H.clip.duration*Math.PI*2); H.arms.forEach(a=>{ a.rotation.z=0.18*ph; a.position.x=0.3+0.05*ph; }); }
+    const ph=Math.sin(H.act.time/H.clip.duration*Math.PI*2); H.arms.forEach(a=>{ a.rotation.z=0.18*ph; a.position.x=0.3+0.05*ph; });
+    H.rarms.forEach(a=>{ JQ.setFromAxisAngle(JX,0.22*ph); a.b.quaternion.copy(a.base).multiply(JQ); }); }   // 首の動きに合わせて手綱を押す
+  const JQ=new THREE.Quaternion(), JX=new THREE.Vector3(1,0,0);
   // 大型ビジョン（いまの順位）と着順掲示板
   let visTick=0;
   function vision(R,info,u){ if(!W3.visC||(visTick++%8)) return; const g=W3.visC.getContext('2d'), w=W3.visC.width, h=W3.visC.height;
@@ -1377,9 +1454,9 @@ const SIM = (() => {
   let W3=null, run=null, horses=[];
   const nm=o=>{ const mk=(st.manual[race().id]||autoMarks(race(),ranked(race(),true)))[o.h.no]; return `${mk||''}${o.h.no}番${o.h.name}`; };
   async function setup(R){
-    const src=await loadHorse(); await loadEnv(R3.renderer);
+    const src=await loadHorse(), jsrc=src.real?await loadJockey():null; await loadEnv(R3.renderer);
     W3=buildWorld(R); if(!W3) return false; board(R,false);
-    horses=R.items.map(o=>{ const silk=(SILK[R.r.id]||{})[o.h.no]||''; const H=makeHorse(o,src,silk); W3.scene.add(H.wrap); return {o,...H}; });
+    horses=R.items.map(o=>{ const silk=(SILK[R.r.id]||{})[o.h.no]||''; const H=makeHorse(o,src,silk,jsrc); W3.scene.add(H.wrap); return {o,...H}; });
     place(R,0,true); return true;
   }
   function place(R,u,inGate){
