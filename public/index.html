@@ -1009,8 +1009,8 @@ const JOCKEY_POSE = {
   Spine: [0, 0.55, 1], Spine1: [0, 0.35, 1], Spine2: [0, 0.3, 1], Neck: [0, 0.9, 0.7], Head: [0, 1, 0.25],
   LeftShoulder: [1, 0, 0.35], LeftArm: [0.25, -0.8, 0.6], LeftForeArm: [-0.2, -0.45, 1],
   RightShoulder: [-1, 0, 0.35], RightArm: [-0.25, -0.8, 0.6], RightForeArm: [0.2, -0.45, 1],
-  LeftUpLeg: [0.7, -0.25, 0.85], LeftLeg: [0.18, -0.9, -0.4], LeftFoot: [0, -0.3, 1],
-  RightUpLeg: [-0.7, -0.25, 0.85], RightLeg: [-0.18, -0.9, -0.4], RightFoot: [0, -0.3, 1],
+  LeftUpLeg: [0.5, -0.6, 0.65], LeftLeg: [0.22, -0.95, -0.2], LeftFoot: [0, -0.3, 1],
+  RightUpLeg: [-0.5, -0.6, 0.65], RightLeg: [-0.22, -0.95, -0.2], RightFoot: [0, -0.3, 1],
 };
 function poseJockey(root, pose) {
   pose = pose || JOCKEY_POSE;
@@ -1031,6 +1031,29 @@ function poseJockey(root, pose) {
     b.updateMatrixWorld(true);
   }
   return bones;
+}
+
+/* ゼッケン（鞍の下の布）: 馬の背から両脇へ垂れる曲面。番号は両脇に描く。
+   形は鞍の位置で測った胴の断面（tools/pose_test.html）。中心は背中の骨から cy 下、角度は真上=0・右(+Z)が正 */
+const BARREL = [0.557,0.564,0.156,0.195,0.169,0.208,0.229,0.248,0.278,0.295,0.311,0.337,0.362,0.385,0.407,0.443,0.487,0.518,0.532,0.52,0.491,0.449,0.411,0.395,0.374,0.349,0.315,0.295,0.276,0.254,0.235,0.213,0.197,0.448,0.549,0.549,0.557];
+function barrelR(a) { const f = (a + Math.PI) / (Math.PI * 2) * 36, i = Math.floor(f), t = f - i; return BARREL[i] * (1 - t) + BARREL[Math.min(36, i + 1)] * t; }
+function saddleCloth(no, opt) {
+  const o = Object.assign({ A: 1.75, len: 0.6, cy: -0.25, gap: 0.025 }, opt || {});
+  const c = document.createElement('canvas'); c.width = 512; c.height = 512; const g = c.getContext('2d');
+  g.fillStyle = '#F7F6F1'; g.fillRect(0, 0, 512, 512);
+  g.fillStyle = '#151515'; g.font = 'bold 120px "Helvetica Neue",Arial,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  // v=0 が左の裾・v=1 が右の裾。左は左右反転、右は上下反転して、外から見て正しく読めるようにする
+  g.save(); g.translate(256, 512 * (1 - 0.2)); g.scale(-1, 1); g.fillText(String(no), 0, 0); g.restore();
+  g.save(); g.translate(256, 512 * (1 - 0.8)); g.scale(1, -1); g.fillText(String(no), 0, 0); g.restore();
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
+  const nu = 8, na = 30, pos = [], uv = [], idx = [];
+  for (let j = 0; j <= na; j++) for (let i = 0; i <= nu; i++) {
+    const a = -o.A + 2 * o.A * j / na, x = -o.len / 2 + o.len * i / nu, R = barrelR(a) + o.gap;
+    pos.push(x, o.cy + R * Math.cos(a), R * Math.sin(a)); uv.push(i / nu, j / na);
+  }
+  for (let j = 0; j < na; j++) for (let i = 0; i < nu; i++) { const a = j * (nu + 1) + i, b = a + nu + 1; idx.push(a, a + 1, b, a + 1, b + 1, b); }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals();
+  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: t, roughness: 0.85, side: THREE.DoubleSide })); m.castShadow = true; return m;
 }
 
 /* ── 3Dでレースを走らせる ──────────────────────────────
@@ -1408,15 +1431,16 @@ const SIM = (() => {
     if(src.real&&torso&&jsrc){ // 背中の骨の位置を基準に、腰を少し後ろ・上へ
       wrap.updateMatrixWorld(true); const tp=new THREE.Vector3(); torso.getWorldPosition(tp); wrap.worldToLocal(tp); holder.position.copy(tp).setZ(0);
       rj=jockeyReal(jsrc, silkText, CAP[o.h.waku]||0xffffff); holder.add(rj.g); holder.updateMatrixWorld(true);
-      const hp=new THREE.Vector3(); rj.bones.Hips.getWorldPosition(hp); holder.worldToLocal(hp); rj.g.position.set(-0.22-hp.x,0.42-hp.y,-hp.z);
+      const hp=new THREE.Vector3(); rj.bones.Hips.getWorldPosition(hp); holder.worldToLocal(hp); rj.g.position.set(-0.22-hp.x,0.40-hp.y,-hp.z);
     } else {
       j=jockey(silkText, CAP[o.h.waku]||0xffffff, !src.real); holder.add(j);
       const hb=new THREE.Box3().setFromObject(obj); holder.position.set(0.05,hb.max.y*0.86,0);
     }
     // ゼッケン：鞍の下、馬体の両脇
     const halfW=Math.min(size.x,size.z)*sc/2, cloth=numTex(o.h.no,'#FAFAF7','#151515',128,96,72);
-    for(const s of [-1,1]){ const pl=new THREE.Mesh(new THREE.PlaneGeometry(0.62,0.44),new THREE.MeshStandardMaterial({map:cloth,roughness:0.8,side:THREE.DoubleSide}));
-      if(rj){ pl.scale.setScalar(0.8); pl.material.side=THREE.FrontSide; pl.position.set(-0.18,-0.22,s*0.24); } else pl.position.set(-0.1,-0.42,s*(halfW*0.95+0.02));
+    if(rj){ const sc2=saddleCloth(o.h.no); sc2.position.set(-0.2,0,0); holder.add(sc2); }
+    else for(const s of [-1,1]){ const pl=new THREE.Mesh(new THREE.PlaneGeometry(0.62,0.44),new THREE.MeshStandardMaterial({map:cloth,roughness:0.8,side:THREE.DoubleSide}));
+      pl.position.set(-0.1,-0.42,s*(halfW*0.95+0.02));
       if(s<0) pl.rotation.y=Math.PI; holder.add(pl); }
     const bd=badge(o.h.no,o.h.waku); bd.position.set(0,rj?1.55:1.3,0); holder.add(bd);
     // 胴の骨の位置から騎手の高さのずれを測っておき、毎フレーム骨に合わせる
