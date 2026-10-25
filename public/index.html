@@ -383,19 +383,20 @@ input[type=range].on::-moz-range-thumb{border-color:var(--pen);background:var(--
 .sim-stage>canvas{display:block;width:100%;height:100%}
 .hud{position:absolute;inset:0;pointer-events:none;z-index:2;font-family:var(--goth)}
 .hud-d{position:absolute;left:10px;top:10px;background:rgba(14,20,17,.82);color:#fff;font-weight:900;font-size:13px;padding:4px 10px;border-left:4px solid #C8251E;letter-spacing:.04em}
-.hud-r{position:absolute;left:10px;bottom:10px;margin:0;padding:0;list-style:none;display:flex;gap:4px}
+.hud-r{position:absolute;right:10px;top:10px;margin:0;padding:0;list-style:none;display:flex;gap:4px}
 .hud-r li{display:flex;align-items:center;gap:5px;background:rgba(14,20,17,.82);color:#fff;font-weight:900;font-size:13px;padding:3px 8px 3px 4px}
 .hud-r li b{display:grid;place-items:center;width:18px;height:18px;background:#fff;color:#161815;font-size:11px}
 .hud-r li i{width:10px;height:14px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.4)}
-.hud-goal{position:absolute;left:50%;bottom:46px;transform:translateX(-50%);text-align:center;animation:goalIn .5s cubic-bezier(.2,1.4,.4,1) both}
+.hud-goal{position:absolute;left:50%;bottom:calc(27% + 14px);transform:translateX(-50%);text-align:center;animation:goalIn .5s cubic-bezier(.2,1.4,.4,1) both}
 .hud-goal b{display:block;font-size:clamp(34px,8vw,64px);font-weight:900;color:#fff;letter-spacing:.12em;text-shadow:0 3px 0 #C8251E,0 6px 18px rgba(0,0,0,.45)}
 .hud-goal span{display:inline-flex;align-items:center;gap:6px;margin-top:4px;background:rgba(14,20,17,.85);color:#fff;font-weight:900;font-size:14px;padding:4px 10px}
 .hud-goal i{width:10px;height:14px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.4)}
 @keyframes goalIn{from{opacity:0;transform:translateX(-50%) scale(1.6)}to{opacity:1;transform:translateX(-50%) scale(1)}}
 @media (prefers-reduced-motion:reduce){.hud-goal{animation:none}}
-.hud-map{position:absolute;right:8px;bottom:8px;width:150px;height:100px;border-radius:4px}
-@media (max-width:719px){.hud-map{width:120px;height:80px}}
-.hud-p{position:absolute;right:12px;top:10px;font-family:var(--mincho);font-weight:800;font-size:18px;color:#C8251E;background:#fff;padding:2px 10px;border:2px solid #C8251E;transform:rotate(-4deg);animation:press .4s var(--ease)}
+.hud-band{position:absolute;left:0;right:0;bottom:0;height:27%;min-height:78px;display:flex;background:linear-gradient(to top,rgba(6,10,8,.82),rgba(6,10,8,.5));border-top:1px solid rgba(255,255,255,.18)}
+.hud-track{flex:1;min-width:0;height:100%;display:block}
+.hud-map{flex:none;height:100%;aspect-ratio:2/1;max-width:38%;display:block;border-left:1px solid rgba(255,255,255,.14)}
+.hud-p{position:absolute;right:12px;top:46px;font-family:var(--mincho);font-weight:800;font-size:18px;color:#C8251E;background:#fff;padding:2px 10px;border:2px solid #C8251E;transform:rotate(-4deg);animation:press .4s var(--ease)}
 .sim-call{margin:0;font-family:var(--hand);font-size:clamp(16px,3.6vw,20px);color:var(--ink);min-height:2.8em;line-height:1.4}
 .sim-ctl{display:flex;gap:8px;flex-wrap:wrap}
 .sim-ctl .btn{flex:1 1 auto;min-width:120px}
@@ -502,12 +503,12 @@ body.simopen{overflow:hidden}
 <div class="sim" id="sim" hidden role="dialog" aria-modal="true" aria-labelledby="simTitle">
   <div class="sim-in">
     <div class="sim-h"><b id="simTitle"></b><span class="num" id="simRest"></span><button id="simClose" aria-label="閉じる">×</button></div>
-    <div class="sim-stage" id="simStage"><div class="hud"><span class="hud-d num" id="hudD"></span><ol class="hud-r num" id="hudRank"></ol><span class="hud-p" id="hudPhoto" hidden>写真判定</span><canvas class="hud-map" id="simMap" width="150" height="100" aria-label="コースの全体図"></canvas></div></div>
+    <div class="sim-stage" id="simStage"><div class="hud"><span class="hud-d num" id="hudD"></span><ol class="hud-r num" id="hudRank"></ol><span class="hud-p" id="hudPhoto" hidden>写真判定</span><div class="hud-band"><canvas class="hud-track" id="simTrack" aria-label="各馬の位置"></canvas><canvas class="hud-map" id="simMap" aria-label="コースの全体図"></canvas></div></div></div>
     <p class="sim-call" id="simCall" aria-live="polite"></p>
     <div class="sim-ctl"><button class="btn solid" id="simAgain">走らせる</button><button class="btn" id="simK">1000回走らせる</button></div>
     <div class="sim-res" id="simResult" hidden></div>
     <p class="sim-note">走りの途中の動きは演出です。着順は、自分の作戦の評価から確率で決めています。</p>
-    <p class="sim-note sim-credit">3D: Horse by <a href="https://sketchfab.com/henry_7" target="_blank" rel="noopener">henry_7</a> (CC BY 4.0) / sky &amp; ground: Poly Haven (CC0) / 版 10/25 11:24</p>
+    <p class="sim-note sim-credit">3D: Horse by <a href="https://sketchfab.com/henry_7" target="_blank" rel="noopener">henry_7</a> (CC BY 4.0) / sky &amp; ground: Poly Haven (CC0) / 版 10/25 15:05</p>
   </div>
 </div>
 <div class="modal" id="modal" hidden></div>
@@ -1038,21 +1039,23 @@ function poseJockey(root, pose) {
 const BARREL = [0.557,0.564,0.156,0.195,0.169,0.208,0.229,0.248,0.278,0.295,0.311,0.337,0.362,0.385,0.407,0.443,0.487,0.518,0.532,0.52,0.491,0.449,0.411,0.395,0.374,0.349,0.315,0.295,0.276,0.254,0.235,0.213,0.197,0.448,0.549,0.549,0.557];
 function barrelR(a) { const f = (a + Math.PI) / (Math.PI * 2) * 36, i = Math.floor(f), t = f - i; return BARREL[i] * (1 - t) + BARREL[Math.min(36, i + 1)] * t; }
 function saddleCloth(no, opt) {
-  const o = Object.assign({ A: 1.3, len: 0.52, cy: -0.25, gap: 0.025, name: '' }, opt || {});   // 背から胴の半分ほどまで（実物の大きさ）
+  const o = Object.assign({ A: 1.45, len: 0.52, cy: -0.25, gap: 0.025, rearGap: 0.035, name: '' }, opt || {});   // 背から胴の半分ほどまで（実物の大きさ）
   // 布の縦（背から裾まで）の長さに合わせて画像の縦横比をそろえる（数字が縦に伸びないように）
   let arc = 0; for (let k = 0; k < 60; k++) { const a0 = -o.A + 2 * o.A * k / 60, a1 = a0 + 2 * o.A / 60; arc += (barrelR(a0) + barrelR(a1)) / 2 * (a1 - a0); }
   const W = 512, Hc = Math.round(W * arc / o.len), c = document.createElement('canvas'); c.width = W; c.height = Hc; const g = c.getContext('2d');
   g.fillStyle = '#F7F6F1'; g.fillRect(0, 0, W, Hc);
   g.fillStyle = '#151515'; g.textAlign = 'center'; g.textBaseline = 'middle';
   // 番号と、その下に小さく馬名。v=0 が左の裾・v=1 が右の裾。左は左右反転、右は上下反転して、外から見て正しく読めるようにする
-  const label = () => { g.font = 'bold 150px "Helvetica Neue",Arial,sans-serif'; g.fillText(String(no), 0, -18);
-    if (o.name) { g.font = 'bold 34px "Hiragino Sans","Noto Sans JP",sans-serif'; g.fillText(o.name, 0, 82, W * 0.9); } };
-  g.save(); g.translate(W / 2, Hc * (1 - 0.3)); g.scale(-1, 1); label(); g.restore();
-  g.save(); g.translate(W / 2, Hc * (1 - 0.7)); g.scale(1, -1); label(); g.restore();
+  // 上の方は馬の鞍のあおりに隠れるので、番号は鞍より下（背から約1.1ラジアン）に置く
+  const vSide = (o.A - 1.1) / (2 * o.A);
+  const label = () => { g.font = 'bold 160px "Helvetica Neue",Arial,sans-serif'; g.fillText(String(no), 0, -24);
+    if (o.name) { g.font = 'bold 28px "Hiragino Sans","Noto Sans JP",sans-serif'; g.fillText(o.name, 0, 62, W * 0.9); } };
+  g.save(); g.translate(W / 2, Hc * (1 - vSide)); g.scale(-1, 1); label(); g.restore();
+  g.save(); g.translate(W / 2, Hc * vSide); g.scale(1, -1); label(); g.restore();
   const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
   const nu = 8, na = 30, pos = [], uv = [], idx = [];
   for (let j = 0; j <= na; j++) for (let i = 0; i <= nu; i++) {
-    const a = -o.A + 2 * o.A * j / na, x = -o.len / 2 + o.len * i / nu, R = barrelR(a) + o.gap;
+    const a = -o.A + 2 * o.A * j / na, x = -o.len / 2 + o.len * i / nu, R = barrelR(a) + o.gap + o.rearGap * Math.max(0, -x / (o.len / 2));   // 後ろ（お尻側）ほど少し浮かせる
     pos.push(x, o.cy + R * Math.cos(a), R * Math.sin(a)); uv.push(i / nu, j / na);
   }
   for (let j = 0; j < na; j++) for (let i = 0; i < nu; i++) { const a = j * (nu + 1) + i, b = a + nu + 1; idx.push(a, a + 1, b, a + 1, b + 1, b); }
@@ -1442,7 +1445,13 @@ const SIM = (() => {
     }
     // ゼッケン：鞍の下、馬体の両脇
     const halfW=Math.min(size.x,size.z)*sc/2, cloth=numTex(o.h.no,'#FAFAF7','#151515',128,96,72);
-    if(rj){ const sc2=saddleCloth(o.h.no, {name:o.h.name}); sc2.position.set(-0.36,0,0); holder.add(sc2); }   // 騎手のひざから下が布の前に出る位置
+    if(rj){ // 騎手のひざから下が布の前に出る位置。背中の骨に付けて、駆けるときの背のしなりと一緒に傾ける
+      const sc2=saddleCloth(o.h.no, {name:o.h.name}); sc2.position.set(-0.36,0,0); holder.add(sc2);
+      let back=null; obj.traverse(b=>{ if(b.isBone&&b.name==='BN_Spine_01_03_03') back=b; });
+      if(back){ const t0=act.time; act.time=0.3; mixer.update(0); wrap.updateMatrixWorld(true);   // 断面を測ったときと同じ姿勢で取り付ける
+        const tp2=new THREE.Vector3(); torso.getWorldPosition(tp2); wrap.worldToLocal(tp2); holder.position.copy(tp2).setZ(0); holder.updateMatrixWorld(true);
+        back.attach(sc2); act.time=t0; mixer.update(0); wrap.updateMatrixWorld(true);
+        torso.getWorldPosition(tp2); wrap.worldToLocal(tp2); holder.position.copy(tp2).setZ(0); } }   // 騎手の基準を元の姿勢の背中に戻す
     else for(const s of [-1,1]){ const pl=new THREE.Mesh(new THREE.PlaneGeometry(0.62,0.44),new THREE.MeshStandardMaterial({map:cloth,roughness:0.8,side:THREE.DoubleSide}));
       pl.position.set(-0.1,-0.42,s*(halfW*0.95+0.02));
       if(s<0) pl.rotation.y=Math.PI; holder.add(pl); }
@@ -1491,7 +1500,7 @@ const SIM = (() => {
     const {P,W}=W3, lead=u*R.D;
     let cx=0,cz=0,cy=0,cth=0,cnt=0; const lst=[];
     horses.forEach(H=>{ const o=H.o; const prog=inGate?0:lead-lagOf(o,u); const r=Math.max(-80,R.D-prog);
-      const p=at(P,r), nn=innerN(P,p.th), off=W/2-railOff(o,inGate?0:u,R.N,W);
+      const p=at(P,r), nn=innerN(P,p.th), lane=railOff(o,inGate?0:u,R.N,W), off=W/2-lane; H.lane=lane;
       H.wrap.position.set(p.x+nn.x*off, p.y, p.z+nn.z*off); H.wrap.rotation.y=-p.th; lst.push({H,prog});
 
     });
@@ -1531,19 +1540,62 @@ const SIM = (() => {
     R3.camera.position.set(cam.x,cam.y,cam.z); R3.camera.lookAt(cam.lx,cam.ly,cam.lz);
     W3.sun.position.set(info.cx+40,80,info.cz+30); W3.sun.target.position.set(info.cx,info.cy,info.cz);
   }
+  // キャンバスを表示サイズ×画素密度に合わせる
+  function fitCanvas(cv){ const r=cv.getBoundingClientRect(), d=Math.min(2,window.devicePixelRatio||1), w=Math.max(1,Math.round(r.width*d)), h=Math.max(1,Math.round(r.height*d));
+    if(cv.width!==w||cv.height!==h){ cv.width=w; cv.height=h; } return d; }
+  const hex=c=>'#'+c.toString(16).padStart(6,'0');
+  // コース図: 少し斜めから見た立体の図（JRA の中継の右下のような）。正面直線が手前、右回りは180度回す
   function minimap(R,info){
-    const cv=$('#simMap'); if(!cv) return; const g=cv.getContext('2d'), w=cv.width, h=cv.height, P=W3.P;
-    // 公式の平面図と同じ向き（正面直線が下・スタンドが手前）。右回りは180度回す
-    const st=at(P,R.D), extra=[st];
-    if(!W3.mapB){ let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9; P.pts.concat(extra).forEach(p=>{ x0=Math.min(x0,p.x); x1=Math.max(x1,p.x); z0=Math.min(z0,p.z); z1=Math.max(z1,p.z); });
-      const s=Math.min((w-28)/(x1-x0),(h-28)/(z1-z0)); W3.mapB={x0,z0,s,ox:(w-(x1-x0)*s)/2,oz:(h-(z1-z0)*s)/2,flip:P.sign>0}; }
-    const B=W3.mapB, X0=x=>B.ox+(x-B.x0)*B.s, Z0=z=>B.oz+(z-B.z0)*B.s, X=x=>B.flip?w-X0(x):X0(x), Z=z=>B.flip?h-Z0(z):Z0(z);
-    g.clearRect(0,0,w,h); g.fillStyle='rgba(14,20,17,.6)'; g.fillRect(0,0,w,h);
-    g.strokeStyle=R.r.surface==='芝'?'#8FCB6E':'#D9B98C'; g.lineWidth=4; g.beginPath(); P.pts.forEach((p,i)=>i?g.lineTo(X(p.x),Z(p.z)):g.moveTo(X(p.x),Z(p.z))); g.closePath(); g.stroke();
-    if(P.chute){ const j=atMain(P,P.D-P.chute.len); g.strokeStyle='#8FCB6E'; g.lineWidth=3; g.beginPath(); g.moveTo(X(j.x),Z(j.z)); g.lineTo(X(st.x),Z(st.z)); g.stroke(); }
-    const pin=(p,c,t)=>{ g.fillStyle=c; g.beginPath(); g.arc(X(p.x),Z(p.z),6,0,7); g.fill(); g.fillStyle='#fff'; g.font='bold 8px sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(t,X(p.x),Z(p.z)+0.5); };
-    pin(st,'#3A9BB5','S'); pin(at(P,0),'#C8243A','G');
-    info.order.slice().reverse().forEach(({H})=>{ g.fillStyle='#'+(CAP[H.o.h.waku]||0xffffff).toString(16).padStart(6,'0'); g.strokeStyle='#111'; g.lineWidth=1; g.beginPath(); g.arc(X(H.wrap.position.x),Z(H.wrap.position.z),3.4,0,7); g.fill(); g.stroke(); });
+    const cv=$('#simMap'); if(!cv) return; const d=fitCanvas(cv), g=cv.getContext('2d'), w=cv.width, h=cv.height, P=W3.P;
+    const st=at(P,R.D);
+    if(!W3.mapB){ let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9; P.pts.concat([st]).forEach(p=>{ x0=Math.min(x0,p.x); x1=Math.max(x1,p.x); z0=Math.min(z0,p.z); z1=Math.max(z1,p.z); });
+      W3.mapB={x0,x1,z0,z1,flip:P.sign>0}; }
+    const B=W3.mapB, asp=(B.x1-B.x0)/(B.z1-B.z0);
+    const proj=(x,z)=>{ let nx=(x-B.x0)/(B.x1-B.x0), nz=(z-B.z0)/(B.z1-B.z0); if(B.flip){ nx=1-nx; nz=1-nz; }
+      const s=0.66+0.34*nz, sx=Math.min(w*0.88, h*0.95*asp*1.4);       // 奥ほど小さく
+      return [w/2+(nx-0.5)*sx*s, h*(0.2+0.56*nz), s]; };
+    g.clearRect(0,0,w,h);
+    const turf=R.r.surface==='芝', top=turf?'#4FA34A':'#B98D5C', side=turf?'#2C6B2E':'#7A5733', path=pts=>{ g.beginPath(); pts.forEach((p,i)=>{ const q=proj(p.x,p.z); i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]); }); };
+    const lw=Math.max(4,h*0.075);
+    g.lineJoin='round'; g.lineCap='round';
+    // 内馬場のうっすらした面
+    path(P.pts); g.closePath(); g.fillStyle='rgba(120,170,110,.18)'; g.fill();
+    // 側面（厚み）→ 白いラチ → 走路の面
+    g.save(); g.translate(0,lw*0.45); path(P.pts); g.closePath(); g.strokeStyle=side; g.lineWidth=lw; g.stroke(); g.restore();
+    path(P.pts); g.closePath(); g.strokeStyle='rgba(255,255,255,.95)'; g.lineWidth=lw+2.4*d; g.stroke();
+    path(P.pts); g.closePath(); g.strokeStyle=top; g.lineWidth=lw; g.stroke();
+    if(P.chute){ const j=atMain(P,P.D-P.chute.len), a=proj(j.x,j.z), b=proj(st.x,st.z); g.strokeStyle='#4FA34A'; g.lineWidth=lw*0.7; g.beginPath(); g.moveTo(a[0],a[1]); g.lineTo(b[0],b[1]); g.stroke(); }
+    const pin=(p,c,t)=>{ const q=proj(p.x,p.z), r=Math.max(6*d,h*0.07); g.fillStyle=c; g.beginPath(); g.arc(q[0],q[1]-r*0.9,r,0,7); g.fill(); g.beginPath(); g.moveTo(q[0]-r*0.5,q[1]-r*0.5); g.lineTo(q[0],q[1]); g.lineTo(q[0]+r*0.5,q[1]-r*0.5); g.fill();
+      g.fillStyle='#fff'; g.font=`900 ${Math.round(r*1.1)}px sans-serif`; g.textAlign='center'; g.textBaseline='middle'; g.fillText(t,q[0],q[1]-r*0.85); };
+    pin(st,'#2E8FB0','S'); pin(at(P,0),'#C8243A','G');
+    // 先頭の位置に光る印
+    const L=info.order[0].H.wrap.position, q=proj(L.x,L.z), rr=Math.max(4*d,h*0.045);
+    g.fillStyle='rgba(255,236,120,.35)'; g.beginPath(); g.arc(q[0],q[1],rr*2,0,7); g.fill();
+    g.fillStyle='#FFE15A'; g.strokeStyle='#222'; g.lineWidth=1.2*d; g.beginPath(); g.arc(q[0],q[1],rr,0,7); g.fill(); g.stroke();
+  }
+  // トラッキング: スタンド側から見た各馬の位置。左→右が進む向き、上が内ラチ。先頭を中心に寄せて表示
+  let trkLane=10;
+  function tracking(R,info){
+    const cv=$('#simTrack'); if(!cv) return; const d=fitCanvas(cv), g=cv.getContext('2d'), w=cv.width, h=cv.height;
+    g.clearRect(0,0,w,h);
+    const ord=info.order, lead=ord[0].prog, last=ord[ord.length-1].prog, pad=14*d;
+    const span=Math.max(36, lead-last+18), x1=lead+span*0.12, x0=x1-span, X=p=>pad+(p-x0)/(x1-x0)*(w-2*pad);
+    const mx=Math.max(...ord.map(o=>o.H.lane||0)); trkLane+=((Math.max(7,mx+1.5))-trkLane)*0.08;
+    const yT=h*0.2, yB=h*0.86, Y=l=>yT+Math.min(1,l/trkLane)*(yB-yT);
+    // 内ラチ
+    g.strokeStyle='rgba(255,255,255,.85)'; g.lineWidth=2*d; g.beginPath(); g.moveTo(0,yT-8*d); g.lineTo(w,yT-8*d); g.stroke();
+    // ハロン棒（残り200mごと）とゴール
+    g.font=`800 ${Math.round(11*d)}px "Helvetica Neue",Arial,sans-serif`; g.textAlign='center'; g.textBaseline='top';
+    for(let rem=Math.ceil((R.D-x1)/200)*200; rem<=R.D-x0; rem+=200){ if(rem<0) continue; const x=X(R.D-rem);
+      g.strokeStyle=rem===0?'rgba(255,90,90,.95)':'rgba(255,255,255,.4)'; g.lineWidth=(rem===0?2.5:1.2)*d; g.setLineDash(rem===0?[]:[4*d,4*d]);
+      g.beginPath(); g.moveTo(x,yT-8*d); g.lineTo(x,h); g.stroke(); g.setLineDash([]);
+      g.fillStyle=rem===0?'#FF7A7A':'rgba(255,255,255,.85)'; g.fillText(rem===0?'G':String(rem),x,2*d); }
+    // 馬（後ろの馬から描いて、前の馬を上に）
+    const r=Math.max(6*d,Math.min(h*0.13,12*d,w/(ord.length*1.9)));   // 狭い画面では小さく
+    ord.slice().reverse().forEach(({H,prog})=>{ const x=X(prog), y=Y(H.lane||0), wk=H.o.h.waku;
+      if(R.mine===H.o.h.no){ g.strokeStyle='#FF3B30'; g.lineWidth=2.5*d; g.beginPath(); g.arc(x,y,r+3.5*d,0,7); g.stroke(); }
+      g.fillStyle=hex(CAP[wk]||0xffffff); g.strokeStyle='rgba(0,0,0,.75)'; g.lineWidth=1.4*d; g.beginPath(); g.arc(x,y,r,0,7); g.fill(); g.stroke();
+      g.fillStyle=[1,5].includes(+wk)?'#111':'#fff'; g.font=`900 ${Math.round(r*1.15)}px "Helvetica Neue",Arial,sans-serif`; g.textAlign='center'; g.textBaseline='middle'; g.fillText(String(H.o.h.no),x,y+0.5*d); });
   }
   function call(R,u,info){
     const cur=info.order.map(x=>x.H.o), say=(k,t)=>{ if(R.events.has(k)) return; R.events.add(k); $('#simCall').textContent=t; };
@@ -1561,6 +1613,7 @@ const SIM = (() => {
   async function start(useW){
     cancelAnimationFrame(raf);
     const R=buildRun(race(),useW); run=R; cam.init=false;
+    { const mk=st.manual[R.r.id]||autoMarks(R.r,ranked(R.r,true)); R.mine=+Object.keys(mk).find(k=>mk[k]==='◎'); }
     $('#hudGoal')&&$('#hudGoal').remove();
     $('#simResult').hidden=true; $('#simAgain').disabled=true; $('#hudPhoto').hidden=true; $('#simCall').textContent='各馬ゲートに収まりました…';
     if(!(await setup(R))){ $('#simCall').textContent='このコースのデータはまだありません。'; return; }
@@ -1571,7 +1624,7 @@ const SIM = (() => {
       if(el<GATE){ // ゲートの中 → 扉が開く
         const open=smooth(GATE-500,GATE,el); W3.doors.forEach(d=>d.rotation.y=open*1.5*d.userData.sd);
         horses.forEach(H=>{ H.act.timeScale=0.15; H.mixer.update(dt/1000); follow(H); });
-        const info=place(R,0,true); camera(R,info,dt,0,'gate'); minimap(R,info); vision(R,info,0);
+        const info=place(R,0,true); camera(R,info,dt,0,'gate'); minimap(R,info); tracking(R,info); vision(R,info,0);
       } else {
         phase='race'; const tau=Math.min(1,(el-GATE)/DUR); u=uOf(tau);
         const post=Math.max(0,el-GATE-DUR); if(post>0) u=1+post/1000*POSTV/R.D;   // 先頭の入線後も同じ速さで流す
@@ -1581,7 +1634,7 @@ const SIM = (() => {
         const v=(u-prevU)/(dt/1000)*R.D; prevU=u;                      // 画面上の速さ（m/秒）
         const info=place(R,u,false);
         horses.forEach(H=>{ H.act.timeScale=Math.max(0.6,Math.min(2.4,v/14)); H.mixer.update(dt/1000); follow(H); if(Math.random()<0.35) puff(H,v); }); dustStep(dt);
-        camera(R,info,dt,u,phase); call(R,u,info); minimap(R,info); vision(R,info,u);
+        camera(R,info,dt,u,phase); call(R,u,info); minimap(R,info); tracking(R,info); vision(R,info,u);
         if(tau>=1&&!R.crossed){ R.crossed=true; visTick=0; vision(R,info,1); board(R,true); goalFlash(R); }
         const allIn=info.order[info.order.length-1].prog>=R.D+4;   // 最後の馬が線を越えたら終える
         if((allIn&&post>600)||post>=7000){ R3.renderer.render(W3.scene,R3.camera); return finish(R,info); }
@@ -1623,7 +1676,7 @@ const SIM = (() => {
     $('#sim').hidden=false; document.body.classList.add('simopen');
     $('#simAgain').disabled=true; $('#simResult').hidden=true; $('#simCall').textContent='準備中…'; $('#simRest').textContent=`${r.surface}${r.distance}m`;
     try{ ensure($('#simStage')); const R=buildRun(r,true); if(!(await setup(R))){ $('#simCall').textContent='このコースのデータはまだありません。'; return; }
-      const info=place(R,0,true); cam.init=false; camera(R,info,16,0,'gate'); minimap(R,info); R3.renderer.render(W3.scene,R3.camera);
+      const info=place(R,0,true); cam.init=false; camera(R,info,16,0,'gate'); minimap(R,info); tracking(R,info); R3.renderer.render(W3.scene,R3.camera);
       $('#simCall').textContent=`${W3.course.key}・${r.distance}m。自分の作戦で、このレースを走らせる。`; $('#simAgain').textContent='ゲートを開ける'; $('#simAgain').disabled=false; }
     catch(err){ console.error(err); $('#simCall').textContent='レースの画面を用意できませんでした。ページを読み込み直してください。'; }
   }
