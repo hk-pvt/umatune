@@ -417,6 +417,7 @@ input[type=range].on::-moz-range-thumb{border-color:var(--pen);background:var(--
 .sim-k .bar s{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--pen)}
 .sim-k .c{text-align:right;font-weight:900}
 .sim-tally{margin:0;font-size:12px;color:var(--ink2)}
+.sim-credit{font-size:10.5px;opacity:.7}.sim-credit a{color:inherit}
 .sim-note{margin:0;font-size:11px;color:var(--ink3)}
 @media (max-width:719px){
   .sim{padding:0;place-items:stretch}
@@ -506,6 +507,7 @@ body.simopen{overflow:hidden}
     <div class="sim-ctl"><button class="btn solid" id="simAgain">走らせる</button><button class="btn" id="simK">1000回走らせる</button></div>
     <div class="sim-res" id="simResult" hidden></div>
     <p class="sim-note">走りの途中の動きは演出です。着順は、自分の作戦の評価から確率で決めています。</p>
+    <p class="sim-note sim-credit">3D: Horse by <a href="https://sketchfab.com/henry_7" target="_blank" rel="noopener">henry_7</a> (CC BY 4.0) / sky &amp; ground: Poly Haven (CC0)</p>
   </div>
 </div>
 <div class="modal" id="modal" hidden></div>
@@ -1013,11 +1015,11 @@ const SIM = (() => {
   const GLB = document.getElementById('horseGlb').textContent.trim();
   const sig = x=>1/(1+Math.exp(-x)), rnd=(a,b)=>a+Math.random()*(b-a);
   const COATS = [  // 毛色: 胴・濃・淡・たてがみ
-    {n:'鹿毛', m:0x6B3A1E, d:0x40210F, l:0x8C5530, h:0x15100C},
-    {n:'黒鹿毛', m:0x3A2216, d:0x24150D, l:0x553524, h:0x0E0B09},
-    {n:'栗毛', m:0x9A4F22, d:0x6E3615, l:0xB86A35, h:0x8A4A20},
-    {n:'青鹿毛', m:0x23170F, d:0x140D08, l:0x382619, h:0x0B0806},
-    {n:'芦毛', m:0x9B9893, d:0x6D6A66, l:0xC4C1BC, h:0x55524F},
+    {n:'鹿毛', t:0xFFFFFF, m:0x6B3A1E, d:0x40210F, l:0x8C5530, h:0x15100C},
+    {n:'黒鹿毛', t:0x7C6E66, m:0x3A2216, d:0x24150D, l:0x553524, h:0x0E0B09},
+    {n:'栗毛', t:0xFFC79A, m:0x9A4F22, d:0x6E3615, l:0xB86A35, h:0x8A4A20},
+    {n:'青鹿毛', t:0x4E4642, m:0x23170F, d:0x140D08, l:0x382619, h:0x0B0806},
+    {n:'芦毛', t:0xFFFFFF, m:0x9B9893, d:0x6D6A66, l:0xC4C1BC, h:0x55524F},
     {n:'鹿毛', m:0x7A4523, d:0x4A2914, l:0x9A6036, h:0x17110C}];
   const CAP = {1:0xF2F2EE,2:0x1C1C1C,3:0xD0242B,4:0x1F4FA8,5:0xF3C814,6:0x1E7B3E,7:0xEE7F1F,8:0xF2A1BE};
 
@@ -1093,8 +1095,10 @@ const SIM = (() => {
   function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
   async function loadHorse(){
     if(horseSrc) return horseSrc;
-    const bin=Uint8Array.from(atob(GLB.split(',')[1]),c=>c.charCodeAt(0)).buffer;
-    horseSrc=await new Promise((ok,ng)=>new THREE.GLTFLoader().parse(bin,'',ok,ng));
+    // 写実的な馬（Horse by henry_7, CC BY）は別ファイル。読めなければ埋め込みの簡易モデルで動かす
+    try{ horseSrc=await new Promise((ok,ng)=>new THREE.GLTFLoader().load('assets/horse.glb',ok,undefined,ng)); horseSrc.real=true; }
+    catch(e){ const bin=Uint8Array.from(atob(GLB.split(',')[1]),c=>c.charCodeAt(0)).buffer;
+      horseSrc=await new Promise((ok,ng)=>new THREE.GLTFLoader().parse(bin,'',ok,ng)); }
     return horseSrc;
   }
   let ENV=null;
@@ -1260,7 +1264,7 @@ const SIM = (() => {
     return {scene,P,W,sun,gate,doors,course:c,dust,visC,visT,bdC,bdT};
   }
 
-  function jockey(silkText, capColor){
+  function jockey(silkText, capColor, withSaddle=true){
     // 前傾してあぶみに立つ騎乗姿勢。体の前が +X
     const g=new THREE.Group(); const tex=new THREE.CanvasTexture(SILKS.texture(silkText,128)); tex.encoding=THREE.sRGBEncoding;
     const bodyMat=new THREE.MeshStandardMaterial({map:tex,roughness:0.55}); tex.repeat.set(0.5,1);
@@ -1295,7 +1299,7 @@ const SIM = (() => {
       g.add(limb(metal,[-0.05,0.55,0.2*s],[F[0]+0.04,F[1]-0.02,F[2]],0.006));
     }
     // 鞍と手綱
-    const saddle=new THREE.Mesh(new THREE.BoxGeometry(0.42,0.05,0.34),new THREE.MeshStandardMaterial({color:0x2A1D14,roughness:0.6})); saddle.position.set(-0.08,0.55,0); g.add(saddle);
+    const saddle=new THREE.Mesh(new THREE.BoxGeometry(0.42,0.05,0.34),new THREE.MeshStandardMaterial({color:0x2A1D14,roughness:0.6})); saddle.position.set(-0.08,0.55,0); if(withSaddle) g.add(saddle);
     for(const s of [-1,1]) g.add(limb(new THREE.MeshStandardMaterial({color:0x3B2A1E}),[0.74,0.64,0.1*s],[1.15,0.35,0.08*s],0.008));
     g.userData.arms=arms; g.position.y=-0.5;
     g.traverse(m=>{ if(m.isMesh){ m.castShadow=true; } });
@@ -1312,7 +1316,13 @@ const SIM = (() => {
     const obj=THREE.SkeletonUtils.clone(src.scene);
     obj.traverse(m=>{ if(m.isMesh){ m.castShadow=true; m.frustumCulled=false;
       const mats=Array.isArray(m.material)?m.material:[m.material];
-      const nm=mats.map(mt=>{ const c=new THREE.MeshStandardMaterial({color:mt.color.clone(),roughness:0.55,metalness:0,name:mt.name}); const k=o.coat;
+      const nm=mats.map(mt=>{ const k=o.coat;
+        if(mt.map){ // 写実モデル: 質感はそのまま、毛色は色を掛けて変える（芦毛だけは柄を外して灰色に）
+          const c=mt.clone(); c.name=mt.name;
+          if(c.name==='Horse'){ if(k.n==='芦毛'){ c.map=null; c.color.setHex(0xB9B6B0); } else c.color.setHex(k.t); }
+          else if(c.name==='Hair'){ if(k.n==='芦毛'){ c.map=null; c.color.setHex(0x8E8B86); } else c.color.setHex(k.t); }
+          return c; }
+        const c=new THREE.MeshStandardMaterial({color:mt.color.clone(),roughness:0.55,metalness:0,name:mt.name});
         if(c.name==='Main') c.color.setHex(k.m); else if(c.name==='Main_Dark') c.color.setHex(k.d); else if(c.name==='Main_Light') c.color.setHex(k.l);
         else if(c.name==='Hair') c.color.setHex(k.h); return c; });
       m.material=Array.isArray(m.material)?nm:nm[0]; } });
@@ -1321,12 +1331,12 @@ const SIM = (() => {
     const L=Math.max(size.x,size.z), sc=2.6/L; obj.scale.multiplyScalar(sc);
     const wrap=new THREE.Group(); wrap.add(obj);
     obj.rotation.y = size.z>size.x ? Math.PI/2 : 0;   // 進行方向を +X に
-    const mixer=new THREE.AnimationMixer(obj); const clip=src.animations.find(a=>a.name==='Gallop')||src.animations[0];
+    const mixer=new THREE.AnimationMixer(obj); const clip=src.animations.find(a=>/Gallop$/.test(a.name))||src.animations[0];
     const act=mixer.clipAction(clip); act.play(); act.time=Math.random()*clip.duration;
-    const idle=src.animations.find(a=>a.name==='Idle');
-    // 騎手を背中の骨に
-    let torso=null; obj.traverse(b=>{ if(b.isBone&&b.name==='Torso') torso=b; });
-    const j=jockey(silkText, CAP[o.h.waku]||0xffffff);
+    const idle=src.animations.find(a=>/Idle$|Ilde$/.test(a.name));
+    // 騎手を背中の骨に（写実モデルは背中の中ほどの骨）
+    let torso=null; obj.traverse(b=>{ if(b.isBone&&(b.name==='Torso'||b.name==='BN_Spine_02_04_04')) torso=b; });
+    const j=jockey(silkText, CAP[o.h.waku]||0xffffff, !src.real);
     const holder=new THREE.Group(); holder.add(j); wrap.add(holder);
     const hb=new THREE.Box3().setFromObject(obj); holder.position.set(0.05,hb.max.y*0.86,0);
     // ゼッケン：鞍の下、馬体の両脇
