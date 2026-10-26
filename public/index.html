@@ -508,7 +508,7 @@ body.simopen{overflow:hidden}
     <div class="sim-ctl"><button class="btn solid" id="simAgain">走らせる</button><button class="btn" id="simK">1000回走らせる</button></div>
     <div class="sim-res" id="simResult" hidden></div>
     <p class="sim-note">走りの途中の動きは演出です。着順は、自分の作戦の評価から確率で決めています。</p>
-    <p class="sim-note sim-credit">3D: Horse by <a href="https://sketchfab.com/henry_7" target="_blank" rel="noopener">henry_7</a> (CC BY 4.0) / sky &amp; ground: Poly Haven (CC0) / 版 10/26 09:19</p>
+    <p class="sim-note sim-credit">3D: Horse by <a href="https://sketchfab.com/henry_7" target="_blank" rel="noopener">henry_7</a> (CC BY 4.0) / sky &amp; ground: Poly Haven (CC0) / 版 10/26 09:28</p>
   </div>
 </div>
 <div class="modal" id="modal" hidden></div>
@@ -1298,7 +1298,7 @@ const SIM = (() => {
       const roof=new THREE.Mesh(new THREE.BoxGeometry(len+6,1.2,40),new THREE.MeshStandardMaterial({color:0xEEF1F2,roughness:0.5})); roof.position.set(0,26,-16); roof.rotation.x=0.05; st.add(roof);
       for(let x=-len/2;x<=len/2;x+=24){ const col=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.35,20,8),std); col.position.set(x,15,-27); st.add(col); }
       const apron=new THREE.Mesh(new THREE.BoxGeometry(len,0.2,10),dark); apron.position.set(0,0.1,6); st.add(apron);
-      st.position.set(sp.x-sn.x*(W/2+14),sp.y,sp.z-sn.z*(W/2+14)); st.rotation.y=-sp.th; scene.add(st); }
+      st.position.set(sp.x-sn.x*(W/2+14),sp.y,sp.z-sn.z*(W/2+14)); st.rotation.y=-sp.th+(P.sign>0?0:Math.PI); scene.add(st); }   // 局所 -z を外側に（左回りは半回転）
     standAt(140,300);
     // 内馬場の大型ビジョン（順位がその場で変わる）と着順掲示板
     const visC=document.createElement('canvas'); visC.width=1024; visC.height=320; const visT=new THREE.CanvasTexture(visC); visT.encoding=THREE.sRGBEncoding;
