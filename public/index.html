@@ -508,7 +508,7 @@ body.simopen{overflow:hidden}
     <div class="sim-ctl"><button class="btn solid" id="simAgain">走らせる</button><button class="btn" id="simK">1000回走らせる</button></div>
     <div class="sim-res" id="simResult" hidden></div>
     <p class="sim-note">走りの途中の動きは演出です。着順は、自分の作戦の評価から確率で決めています。</p>
-    <p class="sim-note sim-credit">3D: Horse by <a href="https://sketchfab.com/henry_7" target="_blank" rel="noopener">henry_7</a> (CC BY 4.0) / sky &amp; ground: Poly Haven (CC0) / 版 10/25 16:01</p>
+    <p class="sim-note sim-credit">3D: Horse by <a href="https://sketchfab.com/henry_7" target="_blank" rel="noopener">henry_7</a> (CC BY 4.0) / sky &amp; ground: Poly Haven (CC0) / 版 10/26 09:19</p>
   </div>
 </div>
 <div class="modal" id="modal" hidden></div>
@@ -1316,11 +1316,33 @@ const SIM = (() => {
     board.position.set(bp.x+bn.x*(W/2+14),bp.y,bp.z+bn.z*(W/2+14)); scene.add(board); board.lookAt(bp.x-bn.x*40,board.position.y+11,bp.z-bn.z*40);
     // ゴール板と残り距離の標識
     const g0=at(P,0), gn=innerN(P,g0.th);
-    const goal=new THREE.Group(); const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,7,8),new THREE.MeshLambertMaterial({color:0xF4F4F0})); pole.position.y=3.5; goal.add(pole);
-    const disc=new THREE.Mesh(new THREE.CylinderGeometry(0.9,0.9,0.12,24),new THREE.MeshLambertMaterial({color:0xD0242B})); disc.rotation.x=Math.PI/2; disc.position.y=7.2;   // 面をコースの横（スタンドと内馬場）へ向ける goal.add(disc);
-    for(const sd of [1,-1]){ const ring=new THREE.Mesh(new THREE.CircleGeometry(0.72,32),new THREE.MeshBasicMaterial({color:0xFFFFFF})); ring.position.set(0,7.2,0.07*sd); ring.rotation.y=sd>0?0:Math.PI; goal.add(ring);
-      const dot=new THREE.Mesh(new THREE.CircleGeometry(0.42,32),new THREE.MeshBasicMaterial({color:0xD0242B})); dot.position.set(0,7.2,0.08*sd); dot.rotation.y=sd>0?0:Math.PI; goal.add(dot); }
-    goal.scale.setScalar(1.25); goal.position.set(g0.x-gn.x*(W/2+1.2),g0.y,g0.z-gn.z*(W/2+1.2)); goal.rotation.y=-g0.th; scene.add(goal);
+    // ゴール板（内ラチ側）: 京都などの蹄鉄形のアーチ（濃緑・白・緑の3枚）と、真ん中の写真判定の鏡の柱。後ろに花壇
+    { const goal=new THREE.Group(), zIn=P.sign>0?1:-1;   // 局所 +X が進む向き、zIn の向きが内馬場
+      const gDark=new THREE.MeshStandardMaterial({color:0x174A2C,roughness:0.55,emissive:0x03120A}), gMid=new THREE.MeshStandardMaterial({color:0x226B3C,roughness:0.55,emissive:0x061C0F}),
+            gWhite=new THREE.MeshStandardMaterial({color:0xF3F4EF,roughness:0.5,emissive:0x5A5C58}), blk=new THREE.MeshStandardMaterial({color:0x151515,roughness:0.4,metalness:0.3}),
+            mirror=new THREE.MeshStandardMaterial({color:0xC9D3D8,roughness:0.08,metalness:0.95});
+      const U=(w,h,band)=>{ const r=w/2, s=new THREE.Shape(); s.moveTo(-r,0); s.lineTo(-r,h-r); s.absarc(0,h-r,r,Math.PI,0,true); s.lineTo(r,0); s.lineTo(r-band,0); s.lineTo(r-band,h-r);
+        s.absarc(0,h-r,r-band,0,Math.PI,false); s.lineTo(-r+band,0); s.closePath(); return s; };
+      const arch=(w,h,band,depth,mat,edge)=>{ const geo=new THREE.ExtrudeGeometry(U(w,h,band),{depth,bevelEnabled:false,curveSegments:24}); geo.translate(0,0,-depth/2);
+        const m=new THREE.Mesh(geo,mat); if(edge){ const e=new THREE.Mesh(new THREE.ExtrudeGeometry(U(w+0.08,h+0.04,band+0.08),{depth:depth*0.6,bevelEnabled:false,curveSegments:24}),edge); e.geometry.translate(0,0,-depth*0.3); m.add(e); } return m; };
+      const a1=arch(3.3,5.0,0.42,0.2,gDark); a1.position.set(-0.25,0,0.6*zIn); a1.rotation.y=0.12; goal.add(a1);              // 大きい濃緑（奥）
+      const a2=arch(2.8,4.4,0.42,0.18,gWhite,gMid); a2.position.set(0.15,0,0.15*zIn); a2.rotation.y=-0.1; goal.add(a2);       // 白に緑の縁
+      const a3=arch(1.6,2.9,0.3,0.16,gMid); a3.position.set(0,0,-0.35*zIn); goal.add(a3);                                      // 小さい緑（手前）
+      // 白いアーチの右脚に場名
+      const ROMA={札幌:'SAPPORO',函館:'HAKODATE',福島:'FUKUSHIMA',新潟:'NIIGATA',東京:'TOKYO',中山:'NAKAYAMA',中京:'CHUKYO',京都:'KYOTO',阪神:'HANSHIN',小倉:'KOKURA'};
+      const nameT=canvasTex(512,96,(g,w,h)=>{ g.clearRect(0,0,w,h); g.fillStyle='#1F5A37'; g.font='600 64px "Times New Roman",serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText((ROMA[R.r.course]||'').split('').join(' '),w/2,h/2+4); });
+      const nm=new THREE.Mesh(new THREE.PlaneGeometry(2.2,0.4),new THREE.MeshBasicMaterial({map:nameT,transparent:true})); nm.rotation.z=-Math.PI/2*zIn; nm.position.set(1.19,1.9,-0.1*zIn); nm.rotation.y=zIn>0?Math.PI:0; a2.add(nm);
+      // 写真判定の柱（黒い枠に鏡）と台
+      const base=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.55,0.7),blk); base.position.y=0.28; goal.add(base);
+      for(const x of [-0.17,0.17]) for(const z of [-0.12,0.12]){ const c=new THREE.Mesh(new THREE.BoxGeometry(0.05,3.1,0.05),blk); c.position.set(x,0.55+1.55,z); goal.add(c); }
+      for(const y of [0.6,1.6,2.6,3.6]){ const b=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.05,0.3),blk); b.position.set(0,y,0); goal.add(b); }
+      const mr=new THREE.Mesh(new THREE.BoxGeometry(0.28,2.9,0.02),mirror); mr.position.set(0,2.1,0); goal.add(mr);
+      // 後ろの花壇（両側に盛り上がった花）
+      const flowers=canvasTex(256,128,(g,w,h)=>{ g.fillStyle='#2F5E2A'; g.fillRect(0,0,w,h); for(let k=0;k<2600;k++){ const c=['#E0457B','#F06EA0','#C8203F','#F5A3C7','#B23A8E','#FFFFFF'][(Math.random()*6)|0]; g.fillStyle=c; g.beginPath(); g.arc(Math.random()*w,Math.random()*h,1.6+Math.random()*1.6,0,7); g.fill(); } },[3,1]);
+      const bedM=new THREE.MeshStandardMaterial({map:flowers,roughness:1});
+      for(const sx of [-1,1]){ const bed=new THREE.Mesh(new THREE.SphereGeometry(1,24,12,0,Math.PI*2,0,Math.PI/2),bedM); bed.scale.set(3.4,1.1,1.3); bed.position.set(sx*3.4,0,1.8*zIn); goal.add(bed); }
+      goal.traverse(m=>{ if(m.isMesh){ m.castShadow=true; m.receiveShadow=true; } });
+      goal.position.set(g0.x+gn.x*(W/2+2.4),g0.y,g0.z+gn.z*(W/2+2.4)); goal.rotation.y=-g0.th; scene.add(goal); }
     const line=new THREE.Mesh(new THREE.PlaneGeometry(0.35,W+2),new THREE.MeshBasicMaterial({color:0xFFFFFF,transparent:true,opacity:0.92}));
     line.rotation.x=-Math.PI/2; line.rotation.z=-g0.th; line.position.set(g0.x,g0.y+0.04,g0.z); scene.add(line);
     [1000,800,600,400,200].forEach(m=>{ if(m>=R.D) return; const q=at(P,m), qn=innerN(P,q.th);
@@ -1537,6 +1559,8 @@ const SIM = (() => {
   const setFov=f=>{ if(R3.camera.fov!==f){ R3.camera.fov=f; R3.camera.updateProjectionMatrix(); } };
   function camera(R,info,dt,u,phase){
     if(phase!=='race'||u<0.978) setFov(32);
+    if(window.__GOALV){ const g=at(W3.P,0), gn=innerN(W3.P,g.th), c=window.__GOALV, fx=Math.cos(g.th), fz=Math.sin(g.th);   // 確認用（本番では使わない）
+      R3.camera.position.set(g.x-gn.x*c[0]+fx*c[1],g.y+c[2],g.z-gn.z*c[0]+fz*c[1]); R3.camera.lookAt(g.x+gn.x*(W3.W/2+2.4),g.y+2.3,g.z+gn.z*(W3.W/2+2.4)); return; }
     if(window.__CLOSE){ const H=horses[0], p=H.wrap.position, th=-H.wrap.rotation.y, c=window.__CLOSE;   // 確認用の寄り（本番では使わない）
       const fx=Math.cos(th), fz=Math.sin(th), rx=-Math.sin(th), rz=Math.cos(th);
       R3.camera.position.set(p.x+fx*c[0]+rx*c[1], p.y+c[2], p.z+fz*c[0]+rz*c[1]); R3.camera.lookAt(p.x, p.y+1.3, p.z); return; }
@@ -1552,7 +1576,7 @@ const SIM = (() => {
       // 中継と同じく、スタンドの高い所から望遠でゴール線の真横を撮る（ゴール板が手前に細く入る）
       const ox=-gn.x, oz=-gn.z, fx=Math.cos(g.th), fz=Math.sin(g.th), cd=W/2+18, hy=15;
       setFov(asp>1.2?30:20);
-      R3.camera.position.set(g.x+ox*cd-fx*3,g.y+hy,g.z+oz*cd-fz*3); R3.camera.lookAt(g.x-ox*W*0.1,g.y+1.2,g.z-oz*W*0.1);
+      R3.camera.position.set(g.x+ox*cd-fx*3,g.y+hy,g.z+oz*cd-fz*3); R3.camera.lookAt(g.x-ox*W*0.3,g.y+2.0,g.z-oz*W*0.3);   // 奥（内ラチ側）のゴール板まで入れる
       W3.sun.position.set(g.x+40,80,g.z+30); W3.sun.target.position.set(g.x,g.y,g.z); return; }
     if(mode==='front'){ const g=at(P,Math.max(0,info.rLead-30)), gn=innerN(P,g.th);
       R3.camera.position.set(g.x-gn.x*(W/2-4),g.y+2.6,g.z-gn.z*(W/2-4)); R3.camera.lookAt(info.cx,info.cy+1.2,info.cz);
